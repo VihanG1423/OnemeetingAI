@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { MessageSquareText, Building2, CalendarCheck, MapPin, ArrowRight } from "lucide-react";
 import prisma from "@/lib/prisma";
+import { parseVenue } from "@/lib/parse-venue";
 import ChatInterface from "@/components/chat/ChatInterface";
 import VenueGridCard from "@/components/venues/VenueGridCard";
 import type { Venue } from "@/types";
@@ -37,11 +38,7 @@ export default async function HomePage() {
     take: 6,
   });
 
-  const featuredVenues: Venue[] = rawVenues.map((v) => ({
-    ...v,
-    amenities: JSON.parse(v.amenities) as string[],
-    images: JSON.parse(v.images) as string[],
-  }));
+  const featuredVenues: Venue[] = rawVenues.map((v) => parseVenue(v as unknown as Record<string, unknown>));
 
   // Count venues per city
   const venueCounts = await prisma.venue.groupBy({

@@ -10,10 +10,10 @@ export function parseVenue(raw: Record<string, unknown>): Venue {
     amenities: safeJsonParse<string[]>(raw.amenities as string, []),
     images: safeJsonParse<string[]>(raw.images as string, []),
     facilities: raw.facilities
-      ? safeJsonParse<FacilityCategory[]>(raw.facilities as string, null)
+      ? safeJsonParse<FacilityCategory[] | null>(raw.facilities as string, null)
       : null,
     roomLayouts: raw.roomLayouts
-      ? safeJsonParse<RoomLayoutConfig[]>(raw.roomLayouts as string, null)
+      ? safeJsonParse<RoomLayoutConfig[] | null>(raw.roomLayouts as string, null)
       : null,
   };
 }
