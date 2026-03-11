@@ -60,6 +60,8 @@ export default function AiEnhanceStep({ formData, updateForm }: AiEnhanceStepPro
   const sendMessageRef = useRef<((content: string) => Promise<void>) | null>(null);
 
   const autoReplyTriggeredRef = useRef<string | null>(null);
+  const autoReplyCountRef = useRef(0);
+  const MAX_AUTO_REPLIES = 12; // Safety limit to prevent infinite loops
 
   useEffect(() => {
     if (!autoReply || isLoading || messages.length === 0) return;
@@ -75,13 +77,24 @@ export default function AiEnhanceStep({ formData, updateForm }: AiEnhanceStepPro
     if (!lastMsg.content.includes("?")) return;
 
     autoReplyTriggeredRef.current = lastMsg.id;
+
+    // Stop after max turns to prevent infinite loops
+    if (autoReplyCountRef.current >= MAX_AUTO_REPLIES) {
+      setAutoReply(false);
+      return;
+    }
+
     let cancelled = false;
 
     // Fetch AI-generated reply, then send it
     const doAutoReply = async () => {
       const reply = await fetchAutoReply(lastMsg.content, formData);
       if (!cancelled && reply) {
+        autoReplyCountRef.current++;
         sendMessageRef.current?.(reply);
+      } else if (!cancelled) {
+        // If reply generation failed, stop auto-reply to prevent stuck state
+        setAutoReply(false);
       }
     };
 

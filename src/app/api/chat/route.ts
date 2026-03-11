@@ -15,8 +15,11 @@ export async function POST(request: Request) {
       try {
         const currentMessages = [...conversationMessages];
         let continueLoop = true;
+        let loopCount = 0;
+        const MAX_TOOL_LOOPS = 10; // Safety limit to prevent infinite tool call loops
 
-        while (continueLoop) {
+        while (continueLoop && loopCount < MAX_TOOL_LOOPS) {
+          loopCount++;
           const response = await openai.chat.completions.create({
             model: "gpt-4o-mini",
             messages: currentMessages,

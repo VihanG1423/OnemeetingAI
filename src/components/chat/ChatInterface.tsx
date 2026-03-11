@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Send, Sparkles, Zap } from "lucide-react";
 import ChatMessage from "./ChatMessage";
+import ExpertCTA from "../venues/ExpertCTA";
 import type { ChatMessage as ChatMessageType, VenueCardData, BookingDraftData } from "@/types";
 
 const suggestions = [
@@ -97,38 +98,17 @@ const demoScenarios = {
   },
 };
 
-// AI-powered auto-reply for venue finder demos
-async function fetchFinderAutoReply(aiMessage: string, scenario: string, turnIndex: number): Promise<string> {
+// Auto-reply for venue finder demos — only uses scripted follow-ups, no AI generation
+function getFinderAutoReply(scenario: string, turnIndex: number): string {
   const scenarioData = demoScenarios[scenario as keyof typeof demoScenarios];
   if (!scenarioData) return "";
 
-  // Use scripted follow-ups if available
+  // Only use scripted follow-ups — stops the demo when they run out
   if (turnIndex < scenarioData.followUps.length) {
     return scenarioData.followUps[turnIndex];
   }
 
-  // Otherwise use AI to generate a contextual reply
-  try {
-    const res = await fetch("/api/venues/auto-reply", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        aiQuestion: aiMessage,
-        venueData: {
-          name: "Demo User",
-          city: "Amsterdam",
-          additionalDetails: scenario === "perfectMatch"
-            ? "I'm looking for a professional conference venue for corporate events."
-            : "I need a very premium, unique venue for a high-profile diplomatic event.",
-        },
-      }),
-    });
-    if (!res.ok) return "";
-    const data = await res.json();
-    return data.reply || "";
-  } catch {
-    return "";
-  }
+  return "";
 }
 
 export default function ChatInterface({ compact = false }: ChatInterfaceProps) {
@@ -136,6 +116,7 @@ export default function ChatInterface({ compact = false }: ChatInterfaceProps) {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [activeDemo, setActiveDemo] = useState<string | null>(null);
+  const [demoFinished, setDemoFinished] = useState<string | null>(null); // tracks which demo finished (e.g. "expertCta")
   const demoTurnRef = useRef(0);
   const autoReplyTriggeredRef = useRef<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -162,22 +143,27 @@ export default function ChatInterface({ compact = false }: ChatInterfaceProps) {
     if (lastMsg.role !== "assistant" || lastMsg.isStreaming) return;
     if (lastMsg.content.startsWith("Sorry,")) return;
     if (autoReplyTriggeredRef.current === lastMsg.id) return;
-    if (!lastMsg.content.includes("?") && !lastMsg.venues?.length && !lastMsg.bookingDraft) return;
 
     autoReplyTriggeredRef.current = lastMsg.id;
-    let cancelled = false;
 
-    const doAutoReply = async () => {
-      const reply = await fetchFinderAutoReply(lastMsg.content, activeDemo, demoTurnRef.current);
-      if (!cancelled && reply) {
+    // Get next scripted reply (returns "" when exhausted)
+    const reply = getFinderAutoReply(activeDemo, demoTurnRef.current);
+
+    if (!reply) {
+      // Demo is complete — stop auto-replying
+      setDemoFinished(activeDemo);
+      setActiveDemo(null);
+      return;
+    }
+
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      if (!cancelled) {
         demoTurnRef.current++;
         sendMessageRef.current?.(reply);
       }
-    };
-
-    const timer = setTimeout(doAutoReply, 1500);
+    }, 1500);
     return () => { cancelled = true; clearTimeout(timer); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [messages, activeDemo, isLoading]);
 
   const sendMessage = async (content: string) => {
@@ -359,6 +345,7 @@ export default function ChatInterface({ compact = false }: ChatInterfaceProps) {
     const scenario = demoScenarios[scenarioKey as keyof typeof demoScenarios];
     if (!scenario) return;
     setActiveDemo(scenarioKey);
+    setDemoFinished(null);
     demoTurnRef.current = 0;
     autoReplyTriggeredRef.current = null;
     sendMessage(scenario.initialMessage);
@@ -469,6 +456,12 @@ export default function ChatInterface({ compact = false }: ChatInterfaceProps) {
               )}
             </div>
           ))
+        )}
+        {/* Show ExpertCTA when expert referral demo completes */}
+        {demoFinished === "expertCta" && (
+          <div className="ml-11 animate-fade-in-up">
+            <ExpertCTA compact />
+          </div>
         )}
         <div ref={messagesEndRef} />
       </div>
