@@ -13,7 +13,7 @@ export async function POST(request: Request) {
   const stream = new ReadableStream({
     async start(controller) {
       try {
-        let currentMessages = [...conversationMessages];
+        const currentMessages = [...conversationMessages];
         let continueLoop = true;
 
         while (continueLoop) {
@@ -137,17 +137,16 @@ export async function POST(request: Request) {
                     );
 
                     // Also inject match data into the tool result so AI can reference it
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     const enrichedResult = JSON.stringify(
-                      venuesWithScores.map((v: any) => ({
-                        ...v,
-                        matchPercentage:
-                          v.matchScore?.matchPercentage ?? "N/A",
-                        topHighlights:
-                          v.matchScore?.topHighlights ?? [],
-                        missingRequirements:
-                          v.matchScore?.missingRequirements ?? [],
-                      }))
+                      venuesWithScores.map((v: Record<string, unknown>) => {
+                        const ms = v.matchScore as Record<string, unknown> | null;
+                        return {
+                          ...v,
+                          matchPercentage: ms?.matchPercentage ?? "N/A",
+                          topHighlights: ms?.topHighlights ?? [],
+                          missingRequirements: ms?.missingRequirements ?? [],
+                        };
+                      })
                     );
                     // Replace the tool result with enriched data
                     currentMessages.push({

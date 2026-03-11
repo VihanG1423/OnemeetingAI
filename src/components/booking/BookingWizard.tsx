@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { cn } from "@/lib/utils";
 import ComposeMeeting from "./steps/ComposeMeeting";
@@ -77,7 +76,6 @@ interface BookingWizardProps {
 }
 
 export default function BookingWizard({ venue, initialDate, initialAttendees }: BookingWizardProps) {
-  const router = useRouter();
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [bookingId, setBookingId] = useState<string | null>(null);

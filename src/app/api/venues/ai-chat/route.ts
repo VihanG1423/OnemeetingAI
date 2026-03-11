@@ -214,7 +214,7 @@ CURRENT LISTING STATE (what's been filled so far):
   const stream = new ReadableStream({
     async start(controller) {
       try {
-        let currentMessages = [...conversationMessages];
+        const currentMessages = [...conversationMessages];
         let continueLoop = true;
 
         while (continueLoop) {

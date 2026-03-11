@@ -15,13 +15,13 @@ export default function AvailabilityCalendar({
   onDateSelect,
   selectedDate,
 }: AvailabilityCalendarProps) {
-  const today = new Date();
+  const today = useMemo(() => new Date(), []);
   const [monthOffset, setMonthOffset] = useState(0);
 
   const currentMonth = useMemo(() => {
     const d = new Date(today.getFullYear(), today.getMonth() + monthOffset, 1);
     return d;
-  }, [monthOffset]);
+  }, [today, monthOffset]);
 
   const monthName = currentMonth.toLocaleDateString("en-US", {
     month: "long",
@@ -51,7 +51,7 @@ export default function AvailabilityCalendar({
     }
 
     return result;
-  }, [currentMonth, slug]);
+  }, [currentMonth, slug, today]);
 
   return (
     <div>

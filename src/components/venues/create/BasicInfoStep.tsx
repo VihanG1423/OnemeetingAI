@@ -7,10 +7,11 @@ import {
   Euro,
   Phone,
   Mail,
-  Image,
+  Image as ImageIcon,
   FileText,
   Zap,
 } from "lucide-react";
+import NextImage from "next/image";
 import type { VenueFormData } from "./VenueCreateWizard";
 
 const venueTypes = [
@@ -270,18 +271,19 @@ export default function BasicInfoStep({ formData, updateForm }: BasicInfoStepPro
       {/* Images */}
       <div className="glass-card p-6">
         <h3 className="text-base font-semibold text-white mb-4 flex items-center gap-2">
-          <Image className="h-4 w-4 text-om-orange" />
+          <ImageIcon className="h-4 w-4 text-om-orange" />
           Venue Images
         </h3>
 
         {formData.images.length > 0 && (
           <div className="grid grid-cols-3 gap-3 mb-4">
             {formData.images.map((url, i) => (
-              <div key={i} className="relative group">
-                <img
+              <div key={i} className="relative group h-24">
+                <NextImage
                   src={url}
                   alt={`Venue ${i + 1}`}
-                  className="w-full h-24 object-cover rounded-lg"
+                  fill
+                  className="object-cover rounded-lg"
                 />
                 <button
                   onClick={() => removeImage(i)}

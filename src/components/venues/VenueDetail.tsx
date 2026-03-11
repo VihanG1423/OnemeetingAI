@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { MapPin, Users, ChevronLeft, ChevronRight } from "lucide-react";
 import VenueDetailTabs from "./VenueDetailTabs";
 import VenueSidebar from "./VenueSidebar";
@@ -28,10 +29,11 @@ export default function VenueDetail({ venue }: { venue: Venue }) {
           {/* Image gallery */}
           <div className="glass-card overflow-hidden">
             <div className="relative h-64 sm:h-80 md:h-96">
-              <img
+              <Image
                 src={venue.images[currentImage]}
                 alt={venue.name}
-                className="w-full h-full object-cover"
+                fill
+                className="object-cover"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
 

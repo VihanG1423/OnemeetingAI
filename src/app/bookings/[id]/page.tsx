@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { CheckCircle, MapPin, CalendarDays, Users, Printer, Building2 } from "lucide-react";
 import prisma from "@/lib/prisma";
 import { formatPrice, formatDate, generateBookingRef } from "@/lib/utils";
@@ -51,9 +52,11 @@ export default async function BookingConfirmationPage({
           {/* Venue header */}
           <div className="flex items-start gap-4 mb-5">
             {venue.images && (
-              <img
+              <Image
                 src={(JSON.parse(venue.images) as string[])[0]}
                 alt={venue.name}
+                width={80}
+                height={80}
                 className="w-20 h-20 rounded-xl object-cover shrink-0"
               />
             )}

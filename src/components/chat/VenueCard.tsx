@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { MapPin, Users, Star, CheckCircle2 } from "lucide-react";
 import { formatPrice, venueTypeLabel } from "@/lib/utils";
 import type { VenueCardData } from "@/types";
@@ -28,10 +29,11 @@ export default function VenueCard({ venue }: { venue: VenueCardData }) {
     >
       {venue.image && (
         <div className="h-32 overflow-hidden relative">
-          <img
+          <Image
             src={venue.image}
             alt={venue.name}
-            className="w-full h-full object-cover"
+            fill
+            className="object-cover"
           />
           {venue.matchScore && (
             <div className="absolute top-2 right-2">

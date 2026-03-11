@@ -9,7 +9,7 @@ function renderMarkdown(text: string) {
   const elements: React.ReactNode[] = [];
 
   for (let i = 0; i < lines.length; i++) {
-    let line = lines[i];
+    const line = lines[i];
 
     // Headings
     if (line.startsWith("### ")) {

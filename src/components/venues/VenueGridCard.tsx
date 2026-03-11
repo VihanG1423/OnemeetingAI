@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { MapPin, Users, Star, CheckCircle2, AlertCircle } from "lucide-react";
 import { formatPrice, venueTypeLabel } from "@/lib/utils";
 import type { Venue, VenueMatchResult } from "@/types";
@@ -62,10 +63,11 @@ export default function VenueGridCard({ venue, matchScore }: VenueGridCardProps)
       <div className="glass-card-light overflow-hidden hover:translate-y-[-2px]">
         {/* Image */}
         <div className="relative h-48 overflow-hidden">
-          <img
+          <Image
             src={firstImage}
             alt={venue.name}
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            fill
+            className="object-cover transition-transform duration-500 group-hover:scale-105"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
 

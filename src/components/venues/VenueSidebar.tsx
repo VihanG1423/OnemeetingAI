@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   ArrowRight,
   Star,
@@ -131,9 +132,11 @@ export default function VenueSidebar({ venue }: { venue: Venue }) {
           <h3 className="text-sm font-semibold text-white mb-3">Your Meeting Expert</h3>
           <div className="flex items-center gap-3">
             {venue.meetingExpertImage ? (
-              <img
+              <Image
                 src={venue.meetingExpertImage}
                 alt={venue.meetingExpertName}
+                width={48}
+                height={48}
                 className="w-12 h-12 rounded-full object-cover"
               />
             ) : (
