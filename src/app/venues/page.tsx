@@ -2,6 +2,8 @@ import prisma from "@/lib/prisma";
 import { parseVenue } from "@/lib/parse-venue";
 import VenueGrid from "@/components/venues/VenueGrid";
 
+export const dynamic = "force-dynamic";
+
 export const metadata = {
   title: "Browse Venues - OneMeeting",
   description: "Explore 1500+ meeting and event venues across the Netherlands.",
