@@ -23,9 +23,9 @@ export default function VenueSidebar({ venue }: { venue: Venue }) {
     : `/venues/${venue.slug}/book`;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 sticky top-24 self-start">
       {/* Pricing + booking card */}
-      <div className="glass-card p-6 sticky top-24">
+      <div className="glass-card p-6">
         <div className="mb-4">
           <div className="text-2xl font-bold text-white mb-1">
             {formatPrice(venue.pricePerDay)}

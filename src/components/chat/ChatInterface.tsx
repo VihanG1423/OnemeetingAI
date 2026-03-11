@@ -6,10 +6,10 @@ import ChatMessage from "./ChatMessage";
 import type { ChatMessage as ChatMessageType, VenueCardData, BookingDraftData } from "@/types";
 
 const suggestions = [
-  "Find a conference room in Amsterdam for 50 people",
-  "I need a creative workshop space in Rotterdam",
-  "Show me unique venues under €2,000",
-  "Meeting room for 20 in Utrecht with catering",
+  "We're planning a 2-day leadership retreat for 30 people near Amsterdam with breakout rooms and catering — what do you recommend?",
+  "I need a unique venue for a product launch in Rotterdam, around 100 guests, with AV equipment and drinks reception space",
+  "Looking for a board meeting room for 12 in Utrecht next month — needs video conferencing and parking, budget under €1,500",
+  "We want something special for our annual team event — 80 people, preferably a historic or unusual venue, full-day with lunch",
 ];
 
 interface ChatInterfaceProps {
@@ -21,10 +21,14 @@ export default function ChatInterface({ compact = false }: ChatInterfaceProps) {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const container = scrollContainerRef.current;
+    if (container) {
+      container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
+    }
   }, []);
 
   useEffect(() => {
@@ -201,7 +205,7 @@ export default function ChatInterface({ compact = false }: ChatInterfaceProps) {
       }`}
     >
       {/* Messages area */}
-      <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center px-4">
             <div className="w-14 h-14 rounded-2xl bg-om-orange/15 border border-om-orange/25 flex items-center justify-center mb-4">

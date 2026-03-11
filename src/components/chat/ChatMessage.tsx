@@ -4,6 +4,94 @@ import Link from "next/link";
 import type { ChatMessage as ChatMessageType } from "@/types";
 import { cn } from "@/lib/utils";
 
+function renderMarkdown(text: string) {
+  const lines = text.split("\n");
+  const elements: React.ReactNode[] = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    let line = lines[i];
+
+    // Headings
+    if (line.startsWith("### ")) {
+      elements.push(
+        <strong key={i} className="block text-white text-sm font-semibold mt-3 mb-1">
+          {renderInline(line.slice(4))}
+        </strong>
+      );
+      continue;
+    }
+    if (line.startsWith("## ")) {
+      elements.push(
+        <strong key={i} className="block text-white text-sm font-semibold mt-3 mb-1">
+          {renderInline(line.slice(3))}
+        </strong>
+      );
+      continue;
+    }
+
+    // Bullet points
+    if (line.startsWith("- ") || line.startsWith("* ")) {
+      elements.push(
+        <span key={i} className="block pl-3 before:content-['•'] before:mr-2 before:text-om-orange">
+          {renderInline(line.slice(2))}
+        </span>
+      );
+      continue;
+    }
+
+    // Empty lines become spacing
+    if (line.trim() === "") {
+      elements.push(<span key={i} className="block h-2" />);
+      continue;
+    }
+
+    // Regular paragraph
+    elements.push(
+      <span key={i} className="block">
+        {renderInline(line)}
+      </span>
+    );
+  }
+
+  return elements;
+}
+
+function renderInline(text: string): React.ReactNode {
+  // Process bold (**text**) and italic (*text*) inline
+  const parts: React.ReactNode[] = [];
+  const regex = /\*\*(.+?)\*\*|\*(.+?)\*/g;
+  let lastIndex = 0;
+  let match;
+
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(text.slice(lastIndex, match.index));
+    }
+    if (match[1]) {
+      // Bold
+      parts.push(
+        <strong key={match.index} className="text-white font-semibold">
+          {match[1]}
+        </strong>
+      );
+    } else if (match[2]) {
+      // Italic
+      parts.push(
+        <em key={match.index} className="text-white/90">
+          {match[2]}
+        </em>
+      );
+    }
+    lastIndex = match.index + match[0].length;
+  }
+
+  if (lastIndex < text.length) {
+    parts.push(text.slice(lastIndex));
+  }
+
+  return parts.length > 0 ? parts : text;
+}
+
 export default function ChatMessage({ message }: { message: ChatMessageType }) {
   const isUser = message.role === "user";
 
@@ -41,10 +129,12 @@ export default function ChatMessage({ message }: { message: ChatMessageType }) {
               <span className="chat-typing-dot w-2 h-2 bg-white/50 rounded-full" />
               <span className="chat-typing-dot w-2 h-2 bg-white/50 rounded-full" />
             </>
+          ) : isUser ? (
+            <span>{message.content}</span>
           ) : (
-            <span className={message.isStreaming ? "streaming-cursor" : ""}>
-              {message.content}
-            </span>
+            <div className={message.isStreaming ? "streaming-cursor" : ""}>
+              {renderMarkdown(message.content)}
+            </div>
           )}
         </div>
 
