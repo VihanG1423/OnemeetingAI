@@ -137,26 +137,17 @@ export async function POST(request: Request) {
                     );
 
                     // Also inject match data into the tool result so AI can reference it
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     const enrichedResult = JSON.stringify(
-                      venuesWithScores.map(
-                        (v: {
-                          name: string;
-                          slug: string;
-                          matchScore?: {
-                            matchPercentage: number;
-                            topHighlights: string[];
-                            missingRequirements: string[];
-                          };
-                        }) => ({
-                          ...v,
-                          matchPercentage:
-                            v.matchScore?.matchPercentage ?? "N/A",
-                          topHighlights:
-                            v.matchScore?.topHighlights ?? [],
-                          missingRequirements:
-                            v.matchScore?.missingRequirements ?? [],
-                        })
-                      )
+                      venuesWithScores.map((v: any) => ({
+                        ...v,
+                        matchPercentage:
+                          v.matchScore?.matchPercentage ?? "N/A",
+                        topHighlights:
+                          v.matchScore?.topHighlights ?? [],
+                        missingRequirements:
+                          v.matchScore?.missingRequirements ?? [],
+                      }))
                     );
                     // Replace the tool result with enriched data
                     currentMessages.push({
