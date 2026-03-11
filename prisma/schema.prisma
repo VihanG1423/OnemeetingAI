@@ -1,0 +1,106 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Venue {
+  id               String   @id @default(cuid())
+  name             String
+  slug             String   @unique
+  city             String
+  address          String
+  description      String
+  shortDescription String?  // Tagline
+  capacity         Int
+  pricePerDay      Float
+  pricePerHalfDay  Float
+  amenities        String   // JSON string array
+  images           String   // JSON string array of URLs
+  venueType        String   // conference_center | meeting_room | workshop_space | unique_venue | hotel | coworking
+  rating           Float    @default(4.0)
+  latitude         Float?
+  longitude        Float?
+
+  // Rich detail fields
+  facilities       String?  // JSON - detailed facility categories
+  roomLayouts      String?  // JSON - layout configs with capacity per layout type
+  transportInfo    String?
+  parkingInfo      String?
+  termsAndConditions String?
+  sustainabilityInfo String?
+
+  // Meeting expert
+  meetingExpertName  String?
+  meetingExpertRole  String?
+  meetingExpertImage String?
+
+  // Contact
+  phoneNumber String?
+  email       String?
+
+  // Listing management
+  status       String  @default("approved") // draft | pending | approved | rejected
+  isAiGenerated Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  bookings Booking[]
+}
+
+model Booking {
+  id              String   @id @default(cuid())
+  venueId         String
+  contactName     String
+  contactEmail    String
+  contactPhone    String?
+  eventDate       DateTime
+  endDate         DateTime?
+  attendeeCount   Int
+  eventType       String?
+  addOns          String?  // JSON string (legacy)
+  specialRequests String?
+  totalPrice      Float
+  status          String   @default("pending")
+  createdAt       DateTime @default(now())
+
+  // Enhanced booking fields
+  companyName          String?
+  ccEmail              String?
+  onsiteContactPerson  String?
+  invoiceReference     String?
+  timeFrom             String?  // e.g. "09:00"
+  timeTo               String?  // e.g. "17:00"
+  isMultiDay           Boolean  @default(false)
+  meetingType          String?  // board_meeting | workshop | training | presentation | conference | seminar | team_building | other
+  roomLayout           String?  // theater | classroom | u_shape | boardroom | cabaret | reception
+  programDescription   String?
+  cateringOptions      String?  // JSON - { breakfast: bool, lunch: bool, drinks: bool, dinner: bool }
+  avResources          String?  // JSON - { projector: bool, flip_chart: bool, microphone: bool, sound_system: bool }
+  needsHotelRooms      Boolean  @default(false)
+  hotelRoomDetails     String?
+  climateNeutral       Boolean  @default(false)
+
+  venue Venue @relation(fields: [venueId], references: [id])
+}
+
+model ChatSession {
+  id        String   @id @default(cuid())
+  messages  String   // JSON string of message array
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ExpertRequest {
+  id           String   @id @default(cuid())
+  name         String
+  email        String
+  phone        String?
+  requirements String
+  criteria     String?  // JSON string of search criteria
+  status       String   @default("pending") // pending | assigned | resolved
+  createdAt    DateTime @default(now())
+}
