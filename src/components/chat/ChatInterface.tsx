@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Send, Sparkles } from "lucide-react";
+import { Send, Sparkles, Zap } from "lucide-react";
 import ChatMessage from "./ChatMessage";
 import type { ChatMessage as ChatMessageType, VenueCardData, BookingDraftData } from "@/types";
 
@@ -76,13 +76,72 @@ interface ChatInterfaceProps {
   compact?: boolean;
 }
 
+// Demo scenario definitions
+const demoScenarios = {
+  perfectMatch: {
+    label: "Perfect Match",
+    description: "AI finds ideal venues",
+    initialMessage: "We're planning a leadership retreat for 40 people in Amsterdam — we need a conference center with breakout rooms, catering, AV equipment, and good public transport access. Budget is around €2,500 per day.",
+    followUps: [
+      "That sounds great! Can you check availability for the top recommendation for next Thursday?",
+      "Perfect, let's go ahead and start the booking process for that date.",
+    ],
+  },
+  expertCta: {
+    label: "Expert Referral",
+    description: "AI suggests OneMeeting experts",
+    initialMessage: "I need a very specific venue — a castle or historic estate near Maastricht for a formal 3-day diplomatic reception with 200 guests, multilingual staff, helicopter landing pad, and Michelin-star catering on-site. Budget is flexible.",
+    followUps: [
+      "Yes, I'd like to speak with a venue specialist who handles premium events like this.",
+    ],
+  },
+};
+
+// AI-powered auto-reply for venue finder demos
+async function fetchFinderAutoReply(aiMessage: string, scenario: string, turnIndex: number): Promise<string> {
+  const scenarioData = demoScenarios[scenario as keyof typeof demoScenarios];
+  if (!scenarioData) return "";
+
+  // Use scripted follow-ups if available
+  if (turnIndex < scenarioData.followUps.length) {
+    return scenarioData.followUps[turnIndex];
+  }
+
+  // Otherwise use AI to generate a contextual reply
+  try {
+    const res = await fetch("/api/venues/auto-reply", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        aiQuestion: aiMessage,
+        venueData: {
+          name: "Demo User",
+          city: "Amsterdam",
+          additionalDetails: scenario === "perfectMatch"
+            ? "I'm looking for a professional conference venue for corporate events."
+            : "I need a very premium, unique venue for a high-profile diplomatic event.",
+        },
+      }),
+    });
+    if (!res.ok) return "";
+    const data = await res.json();
+    return data.reply || "";
+  } catch {
+    return "";
+  }
+}
+
 export default function ChatInterface({ compact = false }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<ChatMessageType[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [activeDemo, setActiveDemo] = useState<string | null>(null);
+  const demoTurnRef = useRef(0);
+  const autoReplyTriggeredRef = useRef<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const sendMessageRef = useRef<((content: string) => Promise<void>) | null>(null);
 
   const scrollToBottom = useCallback(() => {
     const container = scrollContainerRef.current;
@@ -94,6 +153,32 @@ export default function ChatInterface({ compact = false }: ChatInterfaceProps) {
   useEffect(() => {
     scrollToBottom();
   }, [messages, scrollToBottom]);
+
+  // Auto-reply effect for demo mode
+  useEffect(() => {
+    if (!activeDemo || isLoading || messages.length === 0) return;
+
+    const lastMsg = messages[messages.length - 1];
+    if (lastMsg.role !== "assistant" || lastMsg.isStreaming) return;
+    if (lastMsg.content.startsWith("Sorry,")) return;
+    if (autoReplyTriggeredRef.current === lastMsg.id) return;
+    if (!lastMsg.content.includes("?") && !lastMsg.venues?.length && !lastMsg.bookingDraft) return;
+
+    autoReplyTriggeredRef.current = lastMsg.id;
+    let cancelled = false;
+
+    const doAutoReply = async () => {
+      const reply = await fetchFinderAutoReply(lastMsg.content, activeDemo, demoTurnRef.current);
+      if (!cancelled && reply) {
+        demoTurnRef.current++;
+        sendMessageRef.current?.(reply);
+      }
+    };
+
+    const timer = setTimeout(doAutoReply, 1500);
+    return () => { cancelled = true; clearTimeout(timer); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages, activeDemo, isLoading]);
 
   const sendMessage = async (content: string) => {
     if (!content.trim() || isLoading) return;
@@ -267,6 +352,18 @@ export default function ChatInterface({ compact = false }: ChatInterfaceProps) {
     }
   };
 
+  // Keep ref in sync for auto-reply effect
+  sendMessageRef.current = sendMessage;
+
+  const startDemo = (scenarioKey: string) => {
+    const scenario = demoScenarios[scenarioKey as keyof typeof demoScenarios];
+    if (!scenario) return;
+    setActiveDemo(scenarioKey);
+    demoTurnRef.current = 0;
+    autoReplyTriggeredRef.current = null;
+    sendMessage(scenario.initialMessage);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     sendMessage(input);
@@ -285,6 +382,23 @@ export default function ChatInterface({ compact = false }: ChatInterfaceProps) {
         compact ? "h-[500px]" : "h-[calc(100vh-12rem)]"
       }`}
     >
+      {/* Demo mode banner */}
+      {activeDemo && (
+        <div className="px-4 py-2 border-b border-white/10 flex items-center gap-2">
+          <Zap className="h-3.5 w-3.5 text-om-orange" />
+          <span className="text-xs font-medium text-om-orange">
+            Auto Demo: {demoScenarios[activeDemo as keyof typeof demoScenarios]?.label}
+          </span>
+          <button
+            type="button"
+            onClick={() => setActiveDemo(null)}
+            className="ml-auto text-[10px] px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-white/50 hover:bg-white/10 transition-colors"
+          >
+            Stop
+          </button>
+        </div>
+      )}
+
       {/* Messages area */}
       <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
         {messages.length === 0 ? (
@@ -313,6 +427,24 @@ export default function ChatInterface({ compact = false }: ChatInterfaceProps) {
                   {s}
                 </button>
               ))}
+            </div>
+
+            {/* Auto Demo buttons */}
+            <div className="mt-6 pt-4 border-t border-white/10">
+              <p className="text-[10px] text-white/30 mb-3">Auto Demo Scenarios</p>
+              <div className="flex flex-wrap justify-center gap-2">
+                {Object.entries(demoScenarios).map(([key, scenario]) => (
+                  <button
+                    key={key}
+                    onClick={() => startDemo(key)}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-om-orange/30 text-om-orange text-xs font-medium hover:bg-om-orange/10 transition-colors"
+                  >
+                    <Zap className="h-3.5 w-3.5" />
+                    {scenario.label}
+                    <span className="text-white/30 font-normal">— {scenario.description}</span>
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         ) : (

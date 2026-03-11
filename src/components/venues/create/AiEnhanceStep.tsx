@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Send, Sparkles, Bot, User, MapPin, Users, Check, Train, Car, Leaf, Eye } from "lucide-react";
+import { Send, Sparkles, Bot, User, MapPin, Users, Check, Train, Car, Leaf, Eye, Zap } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 import type { VenueFormData } from "./VenueCreateWizard";
 
@@ -18,12 +18,29 @@ interface ListingMessage {
   isStreaming?: boolean;
 }
 
+// AI-powered auto-reply: calls a lightweight API to generate a realistic owner response
+async function fetchAutoReply(aiQuestion: string, formData: VenueFormData): Promise<string> {
+  try {
+    const res = await fetch("/api/venues/auto-reply", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ aiQuestion, venueData: formData }),
+    });
+    if (!res.ok) throw new Error("Auto-reply API failed");
+    const data = await res.json();
+    return data.reply || "";
+  } catch {
+    return "";
+  }
+}
+
 export default function AiEnhanceStep({ formData, updateForm }: AiEnhanceStepProps) {
   const [messages, setMessages] = useState<ListingMessage[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [started, setStarted] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [autoReply, setAutoReply] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -38,6 +55,45 @@ export default function AiEnhanceStep({ formData, updateForm }: AiEnhanceStepPro
   useEffect(() => {
     scrollToBottom();
   }, [messages, scrollToBottom]);
+
+  // Auto-reply: when AI finishes streaming, automatically respond
+  const sendMessageRef = useRef<((content: string) => Promise<void>) | null>(null);
+
+  const autoReplyTriggeredRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!autoReply || isLoading || messages.length === 0) return;
+
+    const lastMsg = messages[messages.length - 1];
+    // Only auto-reply when the AI just finished streaming
+    if (lastMsg.role !== "assistant" || lastMsg.isStreaming) return;
+    // Don't reply to errors
+    if (lastMsg.content.startsWith("Sorry,")) return;
+    // Don't double-reply to the same message
+    if (autoReplyTriggeredRef.current === lastMsg.id) return;
+    // Only reply if the AI is actually asking a question
+    if (!lastMsg.content.includes("?")) return;
+
+    autoReplyTriggeredRef.current = lastMsg.id;
+    let cancelled = false;
+
+    // Fetch AI-generated reply, then send it
+    const doAutoReply = async () => {
+      const reply = await fetchAutoReply(lastMsg.content, formData);
+      if (!cancelled && reply) {
+        sendMessageRef.current?.(reply);
+      }
+    };
+
+    // Small delay so user can see the AI message first
+    const timer = setTimeout(doAutoReply, 1000);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages, autoReply, isLoading]);
 
   const sendMessage = async (content: string) => {
     if (!content.trim() || isLoading) return;
@@ -200,6 +256,9 @@ export default function AiEnhanceStep({ formData, updateForm }: AiEnhanceStepPro
     }
   };
 
+  // Keep ref in sync for auto-reply effect
+  sendMessageRef.current = sendMessage;
+
   const handleStart = () => {
     setStarted(true);
     sendMessage("Hi! I'd like help creating my venue listing. Please review the info I've provided and help me complete the listing.");
@@ -241,13 +300,24 @@ export default function AiEnhanceStep({ formData, updateForm }: AiEnhanceStepPro
               </div>
             ))}
           </div>
-          <button
-            type="button"
-            onClick={handleStart}
-            className="px-8 py-3 rounded-xl bg-om-orange text-white font-semibold hover:bg-om-orange-dark transition-colors"
-          >
-            Start AI Conversation
-          </button>
+          <div className="flex flex-col items-center gap-3">
+            <button
+              type="button"
+              onClick={handleStart}
+              className="px-8 py-3 rounded-xl bg-om-orange text-white font-semibold hover:bg-om-orange-dark transition-colors"
+            >
+              Start AI Conversation
+            </button>
+            <button
+              type="button"
+              onClick={() => { setAutoReply(true); handleStart(); }}
+              className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-white/5 border border-om-orange/30 text-om-orange text-sm font-medium hover:bg-om-orange/10 transition-colors"
+            >
+              <Zap className="h-4 w-4" />
+              Auto Demo Mode
+            </button>
+            <p className="text-[10px] text-white/30">Auto mode answers AI questions automatically for quick demos</p>
+          </div>
         </div>
       </div>
     );
@@ -275,6 +345,17 @@ export default function AiEnhanceStep({ formData, updateForm }: AiEnhanceStepPro
           <div className="px-4 py-3 border-b border-white/10 flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-om-orange" />
             <span className="text-sm font-medium text-white">AI Listing Assistant</span>
+            {autoReply && (
+              <button
+                type="button"
+                onClick={() => setAutoReply(false)}
+                className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-om-orange/15 border border-om-orange/25 text-[10px] text-om-orange font-medium hover:bg-om-orange/25 transition-colors"
+                title="Click to disable auto-reply"
+              >
+                <Zap className="h-3 w-3" />
+                Auto
+              </button>
+            )}
             <CompletionBadge formData={formData} />
           </div>
 
