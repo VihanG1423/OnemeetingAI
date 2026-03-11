@@ -2,8 +2,6 @@ import { notFound } from "next/navigation";
 import prisma from "@/lib/prisma";
 import { parseVenue } from "@/lib/parse-venue";
 import VenueDetail from "@/components/venues/VenueDetail";
-
-export const dynamic = "force-dynamic";
 import type { Metadata } from "next";
 
 export async function generateMetadata({

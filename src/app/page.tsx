@@ -6,8 +6,6 @@ import ChatInterface from "@/components/chat/ChatInterface";
 import VenueGridCard from "@/components/venues/VenueGridCard";
 import type { Venue } from "@/types";
 
-export const dynamic = "force-dynamic";
-
 const cities = [
   { name: "Amsterdam", image: "https://images.unsplash.com/photo-1534351590666-13e3e96b5017?w=400" },
   { name: "Rotterdam", image: "https://images.unsplash.com/photo-1555505019-8c3f1c4aba5f?w=400" },

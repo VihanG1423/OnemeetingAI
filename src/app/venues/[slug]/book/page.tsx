@@ -3,8 +3,6 @@ import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import prisma from "@/lib/prisma";
 import { parseVenue } from "@/lib/parse-venue";
-
-export const dynamic = "force-dynamic";
 import BookingWizard from "@/components/booking/BookingWizard";
 
 export default async function BookingPage({

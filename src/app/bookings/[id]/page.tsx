@@ -2,8 +2,6 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { CheckCircle, MapPin, CalendarDays, Users, Printer, Building2 } from "lucide-react";
 import prisma from "@/lib/prisma";
-
-export const dynamic = "force-dynamic";
 import { formatPrice, formatDate, generateBookingRef } from "@/lib/utils";
 
 export default async function BookingConfirmationPage({
