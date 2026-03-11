@@ -175,6 +175,19 @@ export async function POST(request: Request) {
                 }
               }
 
+              if (tc.name === "suggest_options") {
+                try {
+                  const options = JSON.parse(tc.arguments).options as string[];
+                  controller.enqueue(
+                    encoder.encode(
+                      `data: ${JSON.stringify({ type: "suggestions", content: options })}\n\n`
+                    )
+                  );
+                } catch {
+                  // Skip
+                }
+              }
+
               currentMessages.push({
                 role: "tool" as const,
                 tool_call_id: tc.id,

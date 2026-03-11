@@ -148,6 +148,20 @@ export default function ChatInterface({ compact = false }: ChatInterfaceProps) {
               });
             }
 
+            if (parsed.type === "suggestions") {
+              setMessages((prev) => {
+                const updated = [...prev];
+                const last = updated[updated.length - 1];
+                if (last && last.role === "assistant") {
+                  updated[updated.length - 1] = {
+                    ...last,
+                    suggestions: parsed.content as string[],
+                  };
+                }
+                return updated;
+              });
+            }
+
             if (parsed.type === "error") {
               setMessages((prev) => {
                 const updated = [...prev];
@@ -235,7 +249,27 @@ export default function ChatInterface({ compact = false }: ChatInterfaceProps) {
             </div>
           </div>
         ) : (
-          messages.map((m) => <ChatMessage key={m.id} message={m} />)
+          messages.map((m, i) => (
+            <div key={m.id}>
+              <ChatMessage message={m} />
+              {/* Suggestion buttons — only show on the last assistant message */}
+              {m.suggestions && m.suggestions.length > 0 && !m.isStreaming && i === messages.length - 1 && (
+                <div className="flex flex-wrap gap-2 mt-3 ml-11">
+                  {m.suggestions.map((s, j) => (
+                    <button
+                      key={j}
+                      type="button"
+                      onClick={() => sendMessage(s)}
+                      disabled={isLoading}
+                      className="px-3 py-1.5 rounded-lg bg-om-orange/10 border border-om-orange/20 text-om-orange text-xs font-medium hover:bg-om-orange/20 transition-colors disabled:opacity-50"
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))
         )}
         <div ref={messagesEndRef} />
       </div>

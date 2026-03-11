@@ -108,6 +108,7 @@ export interface ChatMessage {
   content: string;
   venues?: VenueCardData[];
   bookingDraft?: BookingDraftData;
+  suggestions?: string[];
   isStreaming?: boolean;
 }
 

@@ -9,6 +9,7 @@ import {
   Mail,
   Image,
   FileText,
+  Zap,
 } from "lucide-react";
 import type { VenueFormData } from "./VenueCreateWizard";
 
@@ -25,6 +26,45 @@ const dutchCities = [
   "Amsterdam", "Rotterdam", "Utrecht", "The Hague", "Eindhoven",
   "Groningen", "Tilburg", "Almere", "Breda", "Nijmegen",
   "Haarlem", "Arnhem", "Maastricht", "Leiden", "Delft",
+];
+
+const demoVenues: Partial<VenueFormData>[] = [
+  {
+    name: "The Innovation Hub Amsterdam",
+    city: "Amsterdam",
+    address: "Keizersgracht 520, 1017 EK Amsterdam",
+    venueType: "conference_center",
+    capacity: 120,
+    pricePerDay: 2500,
+    pricePerHalfDay: 1500,
+    phoneNumber: "020 - 555 1234",
+    email: "events@innovationhub.nl",
+    additionalDetails: "Modern conference center in a renovated canal house. Rooftop terrace with canal views, organic catering available, 3 breakout rooms, state-of-the-art AV. Near Vijzelstraat metro station.",
+  },
+  {
+    name: "Het Vergaderpaleis Rotterdam",
+    city: "Rotterdam",
+    address: "Wilhelminakade 85, 3072 AP Rotterdam",
+    venueType: "meeting_room",
+    capacity: 50,
+    pricePerDay: 1200,
+    pricePerHalfDay: 750,
+    phoneNumber: "010 - 555 5678",
+    email: "info@vergaderpaleis.nl",
+    additionalDetails: "Stylish meeting rooms overlooking the Erasmus Bridge. Full catering kitchen, natural light in all rooms, free parking for 20 cars, wheelchair accessible.",
+  },
+  {
+    name: "De Oude Brouwerij Utrecht",
+    city: "Utrecht",
+    address: "Oudegracht 180, 3511 NL Utrecht",
+    venueType: "unique_venue",
+    capacity: 80,
+    pricePerDay: 1800,
+    pricePerHalfDay: 1100,
+    phoneNumber: "030 - 555 9012",
+    email: "boek@oudebrouwerij.nl",
+    additionalDetails: "Historic brewery converted into an event space. Exposed brick walls, original brewing equipment as decor, craft beer tasting available, courtyard garden for summer events.",
+  },
 ];
 
 interface BasicInfoStepProps {
@@ -46,6 +86,31 @@ export default function BasicInfoStep({ formData, updateForm }: BasicInfoStepPro
 
   return (
     <div className="space-y-6">
+      {/* Demo Data Loader */}
+      <div className="glass-card p-4 border border-dashed border-om-orange/30 bg-om-orange/[0.03]">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 min-w-0">
+            <Zap className="h-5 w-5 text-om-orange shrink-0" />
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-white">Quick Demo</p>
+              <p className="text-xs text-white/50">Load sample venue data to speed up your demo</p>
+            </div>
+          </div>
+          <div className="flex gap-2 shrink-0">
+            {demoVenues.map((demo, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => updateForm(demo)}
+                className="px-3 py-1.5 rounded-lg bg-om-orange/15 border border-om-orange/25 text-om-orange text-xs font-medium hover:bg-om-orange/25 transition-colors whitespace-nowrap"
+              >
+                {demo.city}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
       {/* Venue Identity */}
       <div className="glass-card p-6">
         <h3 className="text-base font-semibold text-white mb-5 flex items-center gap-2">

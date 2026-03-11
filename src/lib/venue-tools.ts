@@ -19,6 +19,14 @@ RESPONSE FORMAT:
 - Do NOT use markdown headings (###). Write in flowing, conversational paragraphs
 - When presenting venues, weave details naturally into sentences rather than listing raw data
 
+BEING INTERACTIVE (CRITICAL):
+- ALWAYS call suggest_options after EVERY response to give the user clickable quick-reply buttons
+- After presenting venues: suggest things like "Check availability for [venue]", "Compare these two", "Show me more options", "Start booking [venue]"
+- When asking clarifying questions: offer the most common answers as options (e.g., city names, capacity ranges, event types)
+- After checking availability: suggest "Book this date", "Check another date", "See other venues"
+- This is the MOST important behavior — every single response must end with a suggest_options call
+- Provide 3-5 helpful, contextual suggestions each time
+
 SEARCH & RECOMMENDATIONS:
 - ALWAYS use search_venues when the user describes their needs — never invent venues
 - Present 2-3 venues max per search. For each, explain specifically why it fits their needs
@@ -26,8 +34,8 @@ SEARCH & RECOMMENDATIONS:
 - Be honest if a venue isn't a great fit — say what's missing
 
 INTERACTIVE FLOW:
-- If the user is vague, ask ONE clarifying question about the most critical missing detail (attendees, city, date, or event type)
-- After showing results, always offer clear next steps: "Want me to check availability for a specific date?", "I can start a booking for you", "Want to compare these two side by side?"
+- If the user is vague, ask clarifying questions with helpful options via suggest_options
+- After showing results, always use suggest_options with clear next steps
 - If the user wants to narrow down, help them compare: "Between these two, X is better for [reason] while Y excels at [reason]"
 - Use check_availability when the user mentions dates
 - Use create_booking_draft when the user is ready to book
@@ -153,6 +161,26 @@ export const venueTools: OpenAI.Chat.Completions.ChatCompletionTool[] = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "suggest_options",
+      description:
+        "Show clickable quick-reply suggestion buttons to the user. ALWAYS call this after every response to make the conversation interactive and guided. Provide 3-5 contextually relevant options the user can click instead of typing.",
+      parameters: {
+        type: "object",
+        properties: {
+          options: {
+            type: "array",
+            items: { type: "string" },
+            description:
+              "Array of 3-5 short suggestion strings (max 50 chars each) that the user can click. Make them specific and actionable based on the current conversation context.",
+          },
+        },
+        required: ["options"],
+      },
+    },
+  },
 ];
 
 // Tool execution functions
@@ -265,6 +293,9 @@ export async function executeVenueTool(
       return JSON.stringify(await checkAvailability(args));
     case "create_booking_draft":
       return JSON.stringify(await createBookingDraft(args));
+    case "suggest_options":
+      // Handled client-side, just acknowledge
+      return JSON.stringify({ delivered: true });
     default:
       return JSON.stringify({ error: "Unknown tool" });
   }
