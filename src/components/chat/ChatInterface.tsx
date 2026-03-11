@@ -12,6 +12,66 @@ const suggestions = [
   "We want something special for our annual team event — 80 people, preferably a historic or unusual venue, full-day with lunch",
 ];
 
+// Extracts suggestions from AI text — handles both JSON tool-call format and bullet-point lists
+function extractTextSuggestions(content: string): { cleanedContent: string; parsedSuggestions: string[] } {
+  let cleaned = content;
+  let suggestions: string[] = [];
+
+  // 1. Try to extract JSON suggest_options block (when AI writes tool call as text)
+  const jsonPattern = /suggest_options:\s*\{[\s\S]*?options:\s*\[[\s\S]*?\]\s*\}/gi;
+  const codeBlockPattern = /```[\s\S]*?suggest_options[\s\S]*?```/gi;
+
+  for (const pattern of [jsonPattern, codeBlockPattern]) {
+    const match = cleaned.match(pattern);
+    if (match) {
+      const optionsMatch = match[0].match(/\[[\s\S]*?\]/);
+      if (optionsMatch) {
+        try {
+          const fixedJson = optionsMatch[0].replace(/'/g, '"').replace(/,\s*\]/g, ']');
+          const parsed = JSON.parse(fixedJson);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            suggestions = parsed.filter((s: unknown) => typeof s === 'string');
+          }
+        } catch { /* ignore */ }
+      }
+      cleaned = cleaned.replace(match[0], '').trim();
+    }
+  }
+
+  // 2. If no JSON suggestions found, extract trailing bullet-point options from the text
+  //    Look for a pattern like "options to consider:" or "would you like to:" followed by bullet points
+  if (suggestions.length === 0) {
+    const lines = cleaned.split('\n');
+    const bulletLines: string[] = [];
+    let bulletStartIdx = -1;
+
+    // Scan from the end to find consecutive bullet lines
+    for (let i = lines.length - 1; i >= 0; i--) {
+      const trimmed = lines[i].trim();
+      if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
+        bulletLines.unshift(trimmed.replace(/^[-*]\s+/, '').replace(/\*\*/g, ''));
+        bulletStartIdx = i;
+      } else if (bulletLines.length > 0) {
+        break; // Stop once we hit a non-bullet line after finding bullets
+      }
+    }
+
+    // Only use if we found 2-5 short bullet items that look like suggestions (not long paragraphs)
+    if (bulletLines.length >= 2 && bulletLines.length <= 6 && bulletLines.every(b => b.length < 80)) {
+      suggestions = bulletLines;
+      // Check if the line before the bullets is an intro like "Here are some options:"
+      // and remove the bullets + intro from content
+      const introIdx = bulletStartIdx - 1;
+      const introLine = introIdx >= 0 ? lines[introIdx].trim() : '';
+      const isIntro = /(?:options|consider|like to|you could|next steps|try|here are|what would)/i.test(introLine);
+      const removeFrom = isIntro ? introIdx : bulletStartIdx;
+      cleaned = lines.slice(0, removeFrom).join('\n').trim();
+    }
+  }
+
+  return { cleanedContent: cleaned, parsedSuggestions: suggestions };
+}
+
 interface ChatInterfaceProps {
   compact?: boolean;
 }
@@ -95,7 +155,14 @@ export default function ChatInterface({ compact = false }: ChatInterfaceProps) {
               const updated = [...prev];
               const last = updated[updated.length - 1];
               if (last && last.role === "assistant") {
-                updated[updated.length - 1] = { ...last, isStreaming: false };
+                // Extract suggest_options if the AI wrote it as text instead of calling the tool
+                const { cleanedContent, parsedSuggestions } = extractTextSuggestions(last.content);
+                updated[updated.length - 1] = {
+                  ...last,
+                  content: cleanedContent,
+                  suggestions: last.suggestions?.length ? last.suggestions : parsedSuggestions,
+                  isStreaming: false,
+                };
               }
               return updated;
             });
