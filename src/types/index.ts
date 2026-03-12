@@ -110,12 +110,22 @@ export interface ChatMessage {
   bookingDraft?: BookingDraftData;
   suggestions?: string[];
   isStreaming?: boolean;
+  attachments?: ChatAttachment[];
 }
 
 export interface BookingDraftData {
   bookingUrl: string;
   estimatedPrice: number;
   venueName: string;
+}
+
+export interface ChatAttachment {
+  id: string;
+  type: "image" | "pdf";
+  name: string;
+  size: number;
+  preview?: string;
+  data: string;
 }
 
 // Meeting types matching legacy platform

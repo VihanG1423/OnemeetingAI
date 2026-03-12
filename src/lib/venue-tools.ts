@@ -46,6 +46,35 @@ EXPERT FALLBACK:
 
 PRICES: Always in EUR (e.g., "€2,000 per day")`;
 
+export const DEMO_PROMPTS: Record<string, string> = {
+  perfectMatch: `
+DEMO MODE — PERFECT MATCH SCENARIO:
+You are running a guided demo showing how OneMeeting AI finds the perfect venue. Your goal is to guide the user toward finding a conference or retreat venue in Amsterdam for 30-50 people with a budget around €3,000-5,000/day.
+
+CRITICAL RULES FOR SUGGESTION GENERATION:
+- Generate suggestion prompts that naturally guide the user to specify these criteria step by step
+- Start by asking about their event type and group size, then location, then budget, then specific needs
+- Your suggestions should REFINE criteria toward the target, not change direction
+- When you search, venues matching these criteria exist in the database and WILL score 85%+
+- After finding great matches, suggest checking availability and starting a booking
+- Keep the experience feeling natural and helpful — the user should feel like they discovered the perfect venue themselves
+- Do NOT reveal that this is a scripted demo — act naturally
+- After presenting venues with high scores (85%+), suggest next steps like checking dates or starting a booking`,
+
+  expertCta: `
+DEMO MODE — EXPERT REFERRAL SCENARIO:
+You are running a guided demo showing when OneMeeting's expert network is valuable. Your goal is to guide the user toward looking for a highly specific, luxury, or unusual venue that our standard database cannot satisfy.
+
+CRITICAL RULES FOR SUGGESTION GENERATION:
+- Generate suggestion prompts that push the user toward increasingly niche, premium, or exotic requirements
+- Suggest things like: historic castles, Michelin-star on-site chefs, helicopter landing pads, vineyard settings, diplomatic-grade security, multilingual concierge staff
+- When searches return results, they should naturally have LOW match scores (below 60%) because no standard venue can meet these ultra-specific demands
+- After 2-3 searches with low scores, naturally recommend connecting with OneMeeting's venue specialists
+- Frame the expert referral as a positive: "Our specialists have exclusive access to premium venues and can arrange exactly what you need"
+- Do NOT reveal this is a demo — act as if genuinely trying to help
+- Make the conversation feel like a natural progression from "let me search" to "I think our specialists would be better suited for this"`,
+};
+
 export const venueTools: OpenAI.Chat.Completions.ChatCompletionTool[] = [
   {
     type: "function",
@@ -167,7 +196,7 @@ export const venueTools: OpenAI.Chat.Completions.ChatCompletionTool[] = [
     function: {
       name: "suggest_options",
       description:
-        "Show clickable quick-reply suggestion buttons to the user. ALWAYS call this after every response to make the conversation interactive and guided. Provide 3-5 contextually relevant options the user can click instead of typing.",
+        "Show clickable quick-reply suggestion buttons to the user. ALWAYS call this after every response. Provide 3-5 contextually relevant suggestions. IMPORTANT: Analyze the full conversation context before generating suggestions. Each suggestion should advance the conversation — help the user refine criteria, explore a venue, check availability, or take a next step. Never repeat suggestions already used. Make them specific and actionable.",
       parameters: {
         type: "object",
         properties: {
@@ -179,6 +208,24 @@ export const venueTools: OpenAI.Chat.Completions.ChatCompletionTool[] = [
           },
         },
         required: ["options"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "extract_url_content",
+      description:
+        "Fetch and extract text content from a URL that the user has shared. Use this to analyze web pages, venue listings, event briefs, or any online content the user references. Returns the main text content of the page.",
+      parameters: {
+        type: "object",
+        properties: {
+          url: {
+            type: "string",
+            description: "The full URL to fetch and extract content from",
+          },
+        },
+        required: ["url"],
       },
     },
   },
@@ -281,6 +328,28 @@ async function createBookingDraft(args: Record<string, unknown>) {
   };
 }
 
+async function extractUrlContent(args: Record<string, unknown>) {
+  const url = args.url as string;
+  try {
+    const response = await fetch(url, {
+      headers: { "User-Agent": "OneMeeting-AI/1.0" },
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!response.ok) return { error: `Failed to fetch URL: ${response.status}` };
+    const html = await response.text();
+    const text = html
+      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
+      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 5000);
+    return { url, content: text };
+  } catch {
+    return { error: "Failed to fetch URL content" };
+  }
+}
+
 export async function executeVenueTool(
   name: string,
   args: Record<string, unknown>
@@ -297,6 +366,8 @@ export async function executeVenueTool(
     case "suggest_options":
       // Handled client-side, just acknowledge
       return JSON.stringify({ delivered: true });
+    case "extract_url_content":
+      return JSON.stringify(await extractUrlContent(args));
     default:
       return JSON.stringify({ error: "Unknown tool" });
   }
