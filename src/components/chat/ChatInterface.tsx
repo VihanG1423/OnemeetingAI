@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Send, Sparkles, Zap } from "lucide-react";
+import { Send, Sparkles, Zap, ChevronDown, ChevronUp } from "lucide-react";
 import ChatMessage from "./ChatMessage";
 import ExpertCTA from "../venues/ExpertCTA";
 import type { ChatMessage as ChatMessageType, VenueCardData, BookingDraftData } from "@/types";
@@ -116,6 +116,7 @@ export default function ChatInterface({ compact = false }: ChatInterfaceProps) {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [activeDemo, setActiveDemo] = useState<string | null>(null);
+  const [showSamplePrompts, setShowSamplePrompts] = useState(false);
   const [demoFinished, setDemoFinished] = useState<string | null>(null); // tracks which demo finished (e.g. "expertCta")
   const demoTurnRef = useRef(0);
   const autoReplyTriggeredRef = useRef<string | null>(null);
@@ -403,19 +404,6 @@ export default function ChatInterface({ compact = false }: ChatInterfaceProps) {
               Tell me about your meeting or event and I&apos;ll find the perfect
               venue in the Netherlands.
             </p>
-            <div className="flex flex-wrap justify-center gap-2">
-              {suggestions.map((s) => (
-                <button
-                  key={s}
-                  onClick={() => sendMessage(s)}
-                  className="glass-pill px-4 py-2 text-xs text-left hover:border-om-orange/30 transition-colors"
-                  style={{ color: "var(--text-secondary)" }}
-                >
-                  {s}
-                </button>
-              ))}
-            </div>
-
             {/* Auto Demo buttons */}
             <div className="mt-6 pt-4 border-t border-white/10">
               <p className="text-[10px] text-white/30 mb-3">Auto Demo Scenarios</p>
@@ -432,6 +420,29 @@ export default function ChatInterface({ compact = false }: ChatInterfaceProps) {
                   </button>
                 ))}
               </div>
+
+              {/* Collapsible sample prompts */}
+              <button
+                type="button"
+                onClick={() => setShowSamplePrompts((v) => !v)}
+                className="mt-4 flex items-center gap-1 text-[10px] text-white/30 hover:text-white/50 transition-colors mx-auto"
+              >
+                {showSamplePrompts ? "Hide" : "Show"} example prompts
+                {showSamplePrompts ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+              </button>
+              {showSamplePrompts && (
+                <div className="flex flex-wrap justify-center gap-2 mt-3 animate-fade-in-up">
+                  {suggestions.map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => sendMessage(s)}
+                      className="glass-pill px-4 py-2 text-xs text-left hover:border-white/30 transition-colors text-white/50 hover:text-white/70"
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         ) : (
