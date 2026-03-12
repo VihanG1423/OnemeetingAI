@@ -144,14 +144,14 @@ export const roomLayoutOptions = [
 
 // AI Match scoring
 export interface MatchCriteria {
-  city?: string;
+  cities?: string[];       // was: city?: string — multi-select
   capacity?: number;
   budget?: number;
   amenities?: string[];
-  venueType?: string;
-  meetingType?: string;
-  roomLayout?: string;
-  catering?: boolean;
+  venueTypes?: string[];   // was: venueType?: string — multi-select
+  meetingType?: string;    // retained for AI Venue Finder (chat), NOT used in Browse form
+  roomLayout?: string;     // retained for AI Venue Finder (chat), NOT used in Browse form
+  catering?: boolean;      // retained for AI Venue Finder (chat), NOT used in Browse form
   description?: string;
 }
 
