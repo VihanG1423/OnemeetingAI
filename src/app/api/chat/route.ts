@@ -1,12 +1,41 @@
 import openai from "@/lib/openai";
 import prisma from "@/lib/prisma";
-import { SYSTEM_PROMPT, venueTools, executeVenueTool, scoreVenueMatches } from "@/lib/venue-tools";
+import { SYSTEM_PROMPT, DEMO_PROMPTS, venueTools, executeVenueTool, scoreVenueMatches } from "@/lib/venue-tools";
 
 export async function POST(request: Request) {
-  const { messages } = await request.json();
+  const { messages, demoScenario, attachments } = await request.json();
 
-  const systemMessage = { role: "system" as const, content: SYSTEM_PROMPT };
-  const conversationMessages = [systemMessage, ...messages];
+  let systemContent = SYSTEM_PROMPT;
+  if (demoScenario && DEMO_PROMPTS[demoScenario]) {
+    systemContent += "\n\n" + DEMO_PROMPTS[demoScenario];
+  }
+  const systemMessage = { role: "system" as const, content: systemContent };
+
+  // Build conversation messages, handling attachments on the last user message
+  const conversationMessages = [systemMessage, ...messages.map((m: { role: string; content: string }, i: number) => {
+    if (i === messages.length - 1 && m.role === "user" && attachments && attachments.length > 0) {
+      const contentParts: Array<{ type: string; text?: string; image_url?: { url: string } }> = [
+        { type: "text", text: m.content },
+      ];
+
+      for (const att of attachments) {
+        if (att.type === "image") {
+          contentParts.push({
+            type: "image_url",
+            image_url: { url: att.data },
+          });
+        } else if (att.type === "pdf") {
+          contentParts.push({
+            type: "text",
+            text: `[Attached PDF: "${att.name}"]\n${att.data}`,
+          });
+        }
+      }
+
+      return { role: m.role, content: contentParts };
+    }
+    return m;
+  })];
 
   const encoder = new TextEncoder();
 
@@ -188,6 +217,10 @@ export async function POST(request: Request) {
                 } catch {
                   // Skip
                 }
+              }
+
+              if (tc.name === "extract_url_content") {
+                // No special client-side rendering — result goes back to AI for analysis
               }
 
               currentMessages.push({
