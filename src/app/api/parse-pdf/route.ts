@@ -1,4 +1,4 @@
-import pdf from "pdf-parse/lib/pdf-parse.js";
+import { PDFParse } from "pdf-parse";
 
 export async function POST(request: Request) {
   try {
@@ -9,11 +9,12 @@ export async function POST(request: Request) {
     }
 
     const pdfBuffer = Buffer.from(base64Data, "base64");
-    const data = await pdf(pdfBuffer);
+    const parser = new PDFParse({ data: pdfBuffer });
+    const result = await parser.getText();
 
     return Response.json({
-      text: data.text.slice(0, 10000),
-      pages: data.numpages,
+      text: result.text.slice(0, 10000),
+      pages: result.pages.length,
       fileName,
     });
   } catch {
