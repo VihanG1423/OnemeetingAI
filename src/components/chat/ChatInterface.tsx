@@ -402,7 +402,7 @@ export default function ChatInterface({ compact = false }: ChatInterfaceProps) {
       )}
 
       {/* Messages area */}
-      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto scrollbar-autohide p-4 sm:p-6 space-y-6">
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center px-4">
             <div className="w-14 h-14 rounded-2xl bg-om-orange/15 border border-om-orange/25 flex items-center justify-center mb-4">

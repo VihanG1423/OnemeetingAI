@@ -45,6 +45,35 @@ body {
   overflow-x: hidden;
 }
 
+/* ===== Auto-hide scrollbar — visible only while scrolling ===== */
+.scrollbar-autohide {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color 0.3s;
+}
+.scrollbar-autohide:hover,
+.scrollbar-autohide:active {
+  scrollbar-color: rgba(255,255,255,0.15) transparent;
+}
+/* Webkit (Chrome, Safari, Edge) */
+.scrollbar-autohide::-webkit-scrollbar {
+  width: 6px;
+}
+.scrollbar-autohide::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-autohide::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 3px;
+  transition: background 0.3s;
+}
+.scrollbar-autohide:hover::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.15);
+}
+.scrollbar-autohide:hover::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,0.25);
+}
+
 /* ===== Lava Lamp Animated Background ===== */
 .lava-lamp {
   position: fixed;

@@ -435,7 +435,7 @@ export default function AiEnhanceStep({ formData, updateForm }: AiEnhanceStepPro
           </div>
 
           {/* Messages */}
-          <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-4 space-y-4">
+          <div ref={scrollContainerRef} className="flex-1 overflow-y-auto scrollbar-autohide p-4 space-y-4">
             {messages.map((m) => (
               <div key={m.id}>
                 <MessageBubble message={m} />
