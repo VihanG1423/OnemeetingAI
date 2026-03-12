@@ -1,4 +1,4 @@
-import { Bot, User } from "lucide-react";
+import { Bot, User, Image as ImageIcon, FileText } from "lucide-react";
 import VenueCard from "./VenueCard";
 import Link from "next/link";
 import type { ChatMessage as ChatMessageType } from "@/types";
@@ -92,7 +92,7 @@ function renderInline(text: string): React.ReactNode {
   return parts.length > 0 ? parts : text;
 }
 
-export default function ChatMessage({ message }: { message: ChatMessageType }) {
+export default function ChatMessage({ message, onAskAboutVenue }: { message: ChatMessageType; onAskAboutVenue?: (name: string) => void }) {
   const isUser = message.role === "user";
 
   return (
@@ -138,11 +138,27 @@ export default function ChatMessage({ message }: { message: ChatMessageType }) {
           )}
         </div>
 
+        {/* Attachments */}
+        {isUser && message.attachments && message.attachments.length > 0 && (
+          <div className="flex flex-wrap gap-2 mt-1">
+            {message.attachments.map(att => (
+              <div key={att.id} className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-[11px]">
+                {att.type === "image" ? (
+                  <ImageIcon className="h-3 w-3 text-om-orange" />
+                ) : (
+                  <FileText className="h-3 w-3 text-om-orange" />
+                )}
+                <span className="text-white/60 max-w-[120px] truncate">{att.name}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* Venue cards */}
         {message.venues && message.venues.length > 0 && (
           <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
             {message.venues.map((v) => (
-              <VenueCard key={v.slug} venue={v} />
+              <VenueCard key={v.slug} venue={v} onAskAbout={onAskAboutVenue} />
             ))}
           </div>
         )}

@@ -496,7 +496,7 @@ export default function ChatInterface({ compact = false }: ChatInterfaceProps) {
         ) : (
           messages.map((m, i) => (
             <div key={m.id}>
-              <ChatMessage message={m} />
+              <ChatMessage message={m} onAskAboutVenue={(name) => setInput(`Tell me more about ${name} — what makes it special and is it a good fit for my needs?`)} />
               {/* Suggestion buttons — only show on the last assistant message */}
               {m.suggestions && m.suggestions.length > 0 && !m.isStreaming && i === messages.length - 1 && (
                 <div className="flex flex-wrap gap-2 mt-3 ml-11">
