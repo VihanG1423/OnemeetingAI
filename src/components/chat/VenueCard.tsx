@@ -7,19 +7,48 @@ import { MapPin, Users, Star, CheckCircle2, AlertCircle, ChevronUp } from "lucid
 import { formatPrice, venueTypeLabel } from "@/lib/utils";
 import type { VenueCardData } from "@/types";
 
-function MatchBadge({ percentage }: { percentage: number }) {
+function MatchScoreRing({ percentage }: { percentage: number }) {
+  const radius = 18;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (percentage / 100) * circumference;
+
   const color =
     percentage >= 80
-      ? "text-green-400 border-green-400/40 bg-green-400/10"
+      ? "#4ade80"
       : percentage >= 60
-        ? "text-om-orange border-om-orange/40 bg-om-orange/10"
-        : "text-red-400 border-red-400/40 bg-red-400/10";
+        ? "#FF6B00"
+        : "#facc15";
 
   return (
-    <div
-      className={`flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs font-bold ${color}`}
-    >
-      {percentage}% match
+    <div className="relative w-11 h-11 flex items-center justify-center rounded-full bg-black/60 backdrop-blur-sm">
+      <svg className="w-11 h-11 -rotate-90" viewBox="0 0 44 44">
+        <circle
+          cx="22"
+          cy="22"
+          r={radius}
+          fill="none"
+          stroke="rgba(255,255,255,0.15)"
+          strokeWidth="3"
+        />
+        <circle
+          cx="22"
+          cy="22"
+          r={radius}
+          fill="none"
+          stroke={color}
+          strokeWidth="3"
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          strokeLinecap="round"
+          className="transition-all duration-700"
+        />
+      </svg>
+      <span
+        className="absolute text-[10px] font-bold"
+        style={{ color }}
+      >
+        {percentage}%
+      </span>
     </div>
   );
 }
@@ -49,7 +78,7 @@ export default function VenueCard({ venue, onAskAbout }: VenueCardProps) {
           />
           {venue.matchScore && (
             <div className="absolute top-2 right-2">
-              <MatchBadge percentage={venue.matchScore.matchPercentage} />
+              <MatchScoreRing percentage={venue.matchScore.matchPercentage} />
             </div>
           )}
         </div>
