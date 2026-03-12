@@ -49,10 +49,7 @@ export default function AiEnhanceStep({ formData, updateForm }: AiEnhanceStepPro
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const suggestedForMsgRef = useRef<string | null>(null);
-  const suggestionCountRef = useRef(0);
   const typewriterRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const MAX_SUGGESTIONS = 12;
 
   const scrollToBottom = useCallback(() => {
     const container = scrollContainerRef.current;
@@ -106,7 +103,6 @@ export default function AiEnhanceStep({ formData, updateForm }: AiEnhanceStepPro
     setMessages([...newMessages, assistantMessage]);
     setInput("");
     stopTypewriter();
-    suggestedForMsgRef.current = null;
     setIsLoading(true);
 
     try {
@@ -287,8 +283,9 @@ export default function AiEnhanceStep({ formData, updateForm }: AiEnhanceStepPro
       setInput("");
       typewriterRef.current = setInterval(() => {
         if (charIndex < reply.length) {
-          setInput((prev) => prev + reply[charIndex]);
+          const char = reply[charIndex];
           charIndex++;
+          setInput((prev) => prev + char);
         } else {
           if (typewriterRef.current) clearInterval(typewriterRef.current);
           typewriterRef.current = null;
@@ -299,30 +296,6 @@ export default function AiEnhanceStep({ formData, updateForm }: AiEnhanceStepPro
       setIsSuggesting(false);
     }
   }, [isSuggesting, isLoading, messages, formData]);
-
-  // Demo mode: auto-suggest after AI finishes responding
-  useEffect(() => {
-    if (!demoMode || isLoading || isSuggesting || messages.length === 0) return;
-
-    const lastMsg = messages[messages.length - 1];
-    if (lastMsg.role !== "assistant" || lastMsg.isStreaming) return;
-    if (suggestedForMsgRef.current === lastMsg.id) return;
-
-    suggestedForMsgRef.current = lastMsg.id;
-
-    if (suggestionCountRef.current >= MAX_SUGGESTIONS) {
-      setDemoMode(false);
-      return;
-    }
-
-    suggestionCountRef.current++;
-
-    const timer = setTimeout(() => {
-      triggerSuggestion();
-    }, 3000);
-
-    return () => clearTimeout(timer);
-  }, [messages, demoMode, isLoading, isSuggesting, triggerSuggestion]);
 
   const handleStart = () => {
     setStarted(true);

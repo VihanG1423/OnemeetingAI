@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Send, Sparkles, Zap, ChevronDown, ChevronUp, Plus, Image as ImageIcon, FileText, X } from "lucide-react";
+import { Send, Sparkles, Zap, ChevronDown, ChevronUp, Plus, Image as ImageIcon, FileText, X, Wand2, Loader2 } from "lucide-react";
 import ChatMessage from "./ChatMessage";
 import ExpertCTA from "../venues/ExpertCTA";
 import type { ChatMessage as ChatMessageType, VenueCardData, BookingDraftData, ChatAttachment } from "@/types";
@@ -77,6 +77,26 @@ interface ChatInterfaceProps {
   compact?: boolean;
 }
 
+// Calls a lightweight API to generate a realistic customer response for demo scenarios
+async function fetchChatAutoReply(
+  aiMessage: string,
+  demoScenario: string | null,
+  conversationHistory?: { role: string; content: string }[]
+): Promise<string> {
+  try {
+    const res = await fetch("/api/chat/auto-reply", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ aiMessage, demoScenario, conversationHistory }),
+    });
+    if (!res.ok) throw new Error("Auto-reply API failed");
+    const data = await res.json();
+    return data.reply || "";
+  } catch {
+    return "";
+  }
+}
+
 // Demo scenario definitions
 const demoScenarios = {
   perfectMatch: {
@@ -101,10 +121,12 @@ export default function ChatInterface({ compact = false }: ChatInterfaceProps) {
   const [pendingAttachments, setPendingAttachments] = useState<ChatAttachment[]>([]);
   const [showUploadMenu, setShowUploadMenu] = useState(false);
   const [activeDemoScenario, setActiveDemoScenario] = useState<string | null>(null);
+  const [isSuggesting, setIsSuggesting] = useState(false);
   const uploadMenuRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const typewriterRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const scrollToBottom = useCallback(() => {
     const container = scrollContainerRef.current;
@@ -208,6 +230,65 @@ export default function ChatInterface({ compact = false }: ChatInterfaceProps) {
     scrollToBottom();
   }, [messages, scrollToBottom]);
 
+  // Cleanup typewriter on unmount
+  useEffect(() => {
+    return () => {
+      if (typewriterRef.current) clearInterval(typewriterRef.current);
+    };
+  }, []);
+
+  const stopTypewriter = useCallback(() => {
+    if (typewriterRef.current) {
+      clearInterval(typewriterRef.current);
+      typewriterRef.current = null;
+      setIsSuggesting(false);
+    }
+  }, []);
+
+  const triggerSuggestion = useCallback(async () => {
+    if (isSuggesting || isLoading || messages.length === 0) return;
+
+    const lastMsg = messages[messages.length - 1];
+    if (lastMsg.role !== "assistant" || lastMsg.isStreaming) return;
+
+    setIsSuggesting(true);
+
+    try {
+      const conversationHistory = messages.map((m) => ({
+        role: m.role,
+        content: m.content,
+      }));
+
+      const reply = await fetchChatAutoReply(
+        lastMsg.content,
+        activeDemoScenario,
+        conversationHistory
+      );
+
+      if (!reply) {
+        setIsSuggesting(false);
+        return;
+      }
+
+      // Typewriter effect: type characters one at a time into input
+      let charIndex = 0;
+      setInput("");
+      typewriterRef.current = setInterval(() => {
+        if (charIndex < reply.length) {
+          const char = reply[charIndex];
+          charIndex++;
+          setInput((prev) => prev + char);
+        } else {
+          if (typewriterRef.current) clearInterval(typewriterRef.current);
+          typewriterRef.current = null;
+          setIsSuggesting(false);
+        }
+      }, 30);
+    } catch {
+      setIsSuggesting(false);
+    }
+  }, [isSuggesting, isLoading, messages, activeDemoScenario]);
+
   const sendMessage = async (content: string) => {
     if (!content.trim() || isLoading) return;
 
@@ -227,6 +308,7 @@ export default function ChatInterface({ compact = false }: ChatInterfaceProps) {
 
     setMessages((prev) => [...prev, userMessage, assistantMessage]);
     setInput("");
+    stopTypewriter();
     setPendingAttachments([]);
     setIsLoading(true);
 
@@ -586,12 +668,30 @@ export default function ChatInterface({ compact = false }: ChatInterfaceProps) {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
+            onFocus={stopTypewriter}
             placeholder="Describe your ideal meeting venue..."
             rows={1}
-            className="glass-input flex-1 px-4 py-3 text-sm resize-none overflow-hidden"
+            className={`glass-input flex-1 px-4 py-3 text-sm resize-none overflow-hidden ${
+              isSuggesting ? "text-om-orange/80" : ""
+            }`}
             style={{ minHeight: "44px" }}
             disabled={isLoading}
           />
+          {activeDemo && (
+            <button
+              type="button"
+              onClick={triggerSuggestion}
+              disabled={isLoading || isSuggesting || messages.length === 0}
+              className="bg-white/5 hover:bg-white/10 border border-white/10 disabled:opacity-30 text-white/60 hover:text-om-orange px-3 py-3 rounded-xl transition-colors shrink-0 self-end"
+              title="Suggest a response"
+            >
+              {isSuggesting ? (
+                <Loader2 className="h-4 w-4 animate-spin text-om-orange" />
+              ) : (
+                <Wand2 className="h-4 w-4" />
+              )}
+            </button>
+          )}
           <button
             type="submit"
             disabled={isLoading || !input.trim()}
