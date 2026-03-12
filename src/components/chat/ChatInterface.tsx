@@ -421,16 +421,18 @@ export default function ChatInterface({ compact = false }: ChatInterfaceProps) {
             {/* Auto Demo buttons */}
             <div className="mt-6 pt-4 border-t border-white/10">
               <p className="text-[10px] text-white/30 mb-3">Auto Demo Scenarios</p>
-              <div className="flex flex-wrap justify-center gap-2">
+              <div className="grid grid-cols-2 gap-2 w-full max-w-sm mx-auto">
                 {Object.entries(demoScenarios).map(([key, scenario]) => (
                   <button
                     key={key}
                     onClick={() => startDemo(key)}
-                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-om-orange/30 text-om-orange text-xs font-medium hover:bg-om-orange/10 transition-colors"
+                    className="flex flex-col items-center justify-center gap-1 px-3 py-3 rounded-xl bg-white/5 border border-om-orange/30 text-om-orange text-xs font-medium hover:bg-om-orange/10 transition-colors"
                   >
-                    <Zap className="h-3.5 w-3.5" />
-                    {scenario.label}
-                    <span className="text-white/30 font-normal">— {scenario.description}</span>
+                    <span className="flex items-center gap-1.5">
+                      <Zap className="h-3.5 w-3.5" />
+                      {scenario.label}
+                    </span>
+                    <span className="text-white/30 font-normal text-[10px]">{scenario.description}</span>
                   </button>
                 ))}
               </div>
