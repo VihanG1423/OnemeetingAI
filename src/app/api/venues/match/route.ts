@@ -30,11 +30,19 @@ export async function POST(request: Request) {
 
     // Pre-filter by hard criteria before sending to AI
     const preFiltered = venues.filter((v) => {
-      if (criteria.city && v.city.toLowerCase() !== criteria.city.toLowerCase())
-        return false;
+      // Multi-city: venue must match at least one selected city
+      if (criteria.cities && criteria.cities.length > 0) {
+        const matchesCity = criteria.cities.some(
+          (c) => c.toLowerCase() === v.city.toLowerCase()
+        );
+        if (!matchesCity) return false;
+      }
       if (criteria.capacity && v.capacity < criteria.capacity) return false;
       if (criteria.budget && v.pricePerDay > criteria.budget) return false;
-      if (criteria.venueType && v.venueType !== criteria.venueType) return false;
+      // Multi venue type: venue must match at least one selected type
+      if (criteria.venueTypes && criteria.venueTypes.length > 0) {
+        if (!criteria.venueTypes.includes(v.venueType)) return false;
+      }
       return true;
     });
 
@@ -62,7 +70,10 @@ export async function POST(request: Request) {
     // Sort by match percentage descending
     scores.sort((a, b) => b.matchPercentage - a.matchPercentage);
 
-    return NextResponse.json({ scores });
+    // Collect IDs of all scored venues so frontend can split matched vs ruled-out
+    const scoredVenueIds = toScore.map((v) => v.id);
+
+    return NextResponse.json({ scores, scoredVenueIds });
   } catch (error) {
     console.error("Match scoring error:", error);
     return NextResponse.json(
