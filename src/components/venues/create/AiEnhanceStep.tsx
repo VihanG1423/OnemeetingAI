@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Send, Sparkles, Bot, User, MapPin, Users, Check, Train, Car, Leaf, Eye, Zap } from "lucide-react";
+import { Send, Sparkles, Bot, User, MapPin, Users, Check, Train, Car, Leaf, Eye, Zap, Wand2, Loader2 } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 import type { VenueFormData } from "./VenueCreateWizard";
 
@@ -18,13 +18,17 @@ interface ListingMessage {
   isStreaming?: boolean;
 }
 
-// AI-powered auto-reply: calls a lightweight API to generate a realistic owner response
-async function fetchAutoReply(aiQuestion: string, formData: VenueFormData): Promise<string> {
+// Calls a lightweight API to generate a realistic owner response based on conversation context
+async function fetchAutoReply(
+  aiQuestion: string,
+  formData: VenueFormData,
+  conversationHistory?: { role: string; content: string }[]
+): Promise<string> {
   try {
     const res = await fetch("/api/venues/auto-reply", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ aiQuestion, venueData: formData }),
+      body: JSON.stringify({ aiQuestion, venueData: formData, conversationHistory }),
     });
     if (!res.ok) throw new Error("Auto-reply API failed");
     const data = await res.json();
@@ -40,10 +44,15 @@ export default function AiEnhanceStep({ formData, updateForm }: AiEnhanceStepPro
   const [isLoading, setIsLoading] = useState(false);
   const [started, setStarted] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
-  const [autoReply, setAutoReply] = useState(false);
+  const [demoMode, setDemoMode] = useState(false);
+  const [isSuggesting, setIsSuggesting] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const suggestedForMsgRef = useRef<string | null>(null);
+  const suggestionCountRef = useRef(0);
+  const typewriterRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const MAX_SUGGESTIONS = 12;
 
   const scrollToBottom = useCallback(() => {
     const container = scrollContainerRef.current;
@@ -56,57 +65,12 @@ export default function AiEnhanceStep({ formData, updateForm }: AiEnhanceStepPro
     scrollToBottom();
   }, [messages, scrollToBottom]);
 
-  // Auto-reply: when AI finishes streaming, automatically respond
-  const sendMessageRef = useRef<((content: string) => Promise<void>) | null>(null);
-
-  const autoReplyTriggeredRef = useRef<string | null>(null);
-  const autoReplyCountRef = useRef(0);
-  const MAX_AUTO_REPLIES = 12; // Safety limit to prevent infinite loops
-
+  // Cleanup typewriter on unmount
   useEffect(() => {
-    if (!autoReply || isLoading || messages.length === 0) return;
-
-    const lastMsg = messages[messages.length - 1];
-    // Only auto-reply when the AI just finished streaming
-    if (lastMsg.role !== "assistant" || lastMsg.isStreaming) return;
-    // Don't reply to errors
-    if (lastMsg.content.startsWith("Sorry,")) return;
-    // Don't double-reply to the same message
-    if (autoReplyTriggeredRef.current === lastMsg.id) return;
-    // Only reply if the AI is actually asking a question
-    if (!lastMsg.content.includes("?")) return;
-
-    autoReplyTriggeredRef.current = lastMsg.id;
-
-    // Stop after max turns to prevent infinite loops
-    if (autoReplyCountRef.current >= MAX_AUTO_REPLIES) {
-      setAutoReply(false);
-      return;
-    }
-
-    let cancelled = false;
-
-    // Fetch AI-generated reply, then send it
-    const doAutoReply = async () => {
-      const reply = await fetchAutoReply(lastMsg.content, formData);
-      if (!cancelled && reply) {
-        autoReplyCountRef.current++;
-        sendMessageRef.current?.(reply);
-      } else if (!cancelled) {
-        // If reply generation failed, stop auto-reply to prevent stuck state
-        setAutoReply(false);
-      }
-    };
-
-    // Small delay so user can see the AI message first
-    const timer = setTimeout(doAutoReply, 1000);
-
     return () => {
-      cancelled = true;
-      clearTimeout(timer);
+      if (typewriterRef.current) clearInterval(typewriterRef.current);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [messages, autoReply, isLoading]);
+  }, []);
 
   const sendMessage = async (content: string) => {
     if (!content.trim() || isLoading) return;
@@ -127,6 +91,8 @@ export default function AiEnhanceStep({ formData, updateForm }: AiEnhanceStepPro
     const newMessages = [...messages, userMessage];
     setMessages([...newMessages, assistantMessage]);
     setInput("");
+    stopTypewriter();
+    suggestedForMsgRef.current = null;
     setIsLoading(true);
 
     try {
@@ -269,8 +235,82 @@ export default function AiEnhanceStep({ formData, updateForm }: AiEnhanceStepPro
     }
   };
 
-  // Keep ref in sync for auto-reply effect
-  sendMessageRef.current = sendMessage;
+  const stopTypewriter = useCallback(() => {
+    if (typewriterRef.current) {
+      clearInterval(typewriterRef.current);
+      typewriterRef.current = null;
+      setIsSuggesting(false);
+    }
+  }, []);
+
+  const triggerSuggestion = useCallback(async () => {
+    if (isSuggesting || isLoading || messages.length === 0) return;
+
+    const lastMsg = messages[messages.length - 1];
+    if (lastMsg.role !== "assistant" || lastMsg.isStreaming) return;
+    if (!lastMsg.content.includes("?")) return;
+
+    setIsSuggesting(true);
+
+    try {
+      const conversationHistory = messages.map((m) => ({
+        role: m.role,
+        content: m.content,
+      }));
+
+      const reply = await fetchAutoReply(
+        lastMsg.content,
+        formData,
+        conversationHistory
+      );
+
+      if (!reply) {
+        setIsSuggesting(false);
+        return;
+      }
+
+      // Typewriter effect: type characters one at a time into input
+      let charIndex = 0;
+      setInput("");
+      typewriterRef.current = setInterval(() => {
+        if (charIndex < reply.length) {
+          setInput((prev) => prev + reply[charIndex]);
+          charIndex++;
+        } else {
+          if (typewriterRef.current) clearInterval(typewriterRef.current);
+          typewriterRef.current = null;
+          setIsSuggesting(false);
+        }
+      }, 30);
+    } catch {
+      setIsSuggesting(false);
+    }
+  }, [isSuggesting, isLoading, messages, formData]);
+
+  // Demo mode: auto-suggest after AI finishes asking a question
+  useEffect(() => {
+    if (!demoMode || isLoading || isSuggesting || messages.length === 0) return;
+
+    const lastMsg = messages[messages.length - 1];
+    if (lastMsg.role !== "assistant" || lastMsg.isStreaming) return;
+    if (!lastMsg.content.includes("?")) return;
+    if (suggestedForMsgRef.current === lastMsg.id) return;
+
+    suggestedForMsgRef.current = lastMsg.id;
+
+    if (suggestionCountRef.current >= MAX_SUGGESTIONS) {
+      setDemoMode(false);
+      return;
+    }
+
+    suggestionCountRef.current++;
+
+    const timer = setTimeout(() => {
+      triggerSuggestion();
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, [messages, demoMode, isLoading, isSuggesting, triggerSuggestion]);
 
   const handleStart = () => {
     setStarted(true);
@@ -323,13 +363,21 @@ export default function AiEnhanceStep({ formData, updateForm }: AiEnhanceStepPro
             </button>
             <button
               type="button"
-              onClick={() => { setAutoReply(true); handleStart(); }}
-              className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-white/5 border border-om-orange/30 text-om-orange text-sm font-medium hover:bg-om-orange/10 transition-colors"
+              onClick={() => setDemoMode((prev) => !prev)}
+              className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                demoMode
+                  ? "bg-om-orange/20 border border-om-orange/50 text-om-orange"
+                  : "bg-white/5 border border-om-orange/30 text-om-orange hover:bg-om-orange/10"
+              }`}
             >
               <Zap className="h-4 w-4" />
-              Auto Demo Mode
+              {demoMode ? "Demo Mode Enabled" : "Enable Demo Mode"}
             </button>
-            <p className="text-[10px] text-white/30">Auto mode answers AI questions automatically for quick demos</p>
+            <p className="text-[10px] text-white/30">
+              {demoMode
+                ? "Demo mode will suggest sample responses as you chat. Click Start to begin."
+                : "Enable demo mode to get AI-suggested responses during the conversation"}
+            </p>
           </div>
         </div>
       </div>
@@ -358,15 +406,15 @@ export default function AiEnhanceStep({ formData, updateForm }: AiEnhanceStepPro
           <div className="px-4 py-3 border-b border-white/10 flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-om-orange" />
             <span className="text-sm font-medium text-white">AI Listing Assistant</span>
-            {autoReply && (
+            {demoMode && (
               <button
                 type="button"
-                onClick={() => setAutoReply(false)}
+                onClick={() => setDemoMode(false)}
                 className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-om-orange/15 border border-om-orange/25 text-[10px] text-om-orange font-medium hover:bg-om-orange/25 transition-colors"
-                title="Click to disable auto-reply"
+                title="Click to disable demo mode"
               >
                 <Zap className="h-3 w-3" />
-                Auto
+                Demo
               </button>
             )}
             <CompletionBadge formData={formData} />
@@ -406,11 +454,27 @@ export default function AiEnhanceStep({ formData, updateForm }: AiEnhanceStepPro
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
+                onFocus={stopTypewriter}
                 placeholder="Tell the AI about your venue..."
                 rows={1}
-                className="glass-input flex-1 px-3 py-2.5 text-sm resize-none"
+                className={`glass-input flex-1 px-3 py-2.5 text-sm resize-none ${
+                  isSuggesting ? "text-om-orange/80" : ""
+                }`}
                 disabled={isLoading}
               />
+              <button
+                type="button"
+                onClick={triggerSuggestion}
+                disabled={isLoading || isSuggesting || messages.length === 0}
+                className="bg-white/5 hover:bg-white/10 border border-white/10 disabled:opacity-30 text-white/60 hover:text-om-orange px-2.5 py-2.5 rounded-xl transition-colors"
+                title="Suggest a response"
+              >
+                {isSuggesting ? (
+                  <Loader2 className="h-4 w-4 animate-spin text-om-orange" />
+                ) : (
+                  <Wand2 className="h-4 w-4" />
+                )}
+              </button>
               <button
                 type="submit"
                 disabled={isLoading || !input.trim()}

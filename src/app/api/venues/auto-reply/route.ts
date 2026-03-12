@@ -1,7 +1,7 @@
 import openai from "@/lib/openai";
 
 export async function POST(request: Request) {
-  const { aiQuestion, venueData } = await request.json();
+  const { aiQuestion, venueData, conversationHistory } = await request.json();
 
   const venueContext = `
 VENUE INFO:
@@ -16,6 +16,13 @@ VENUE INFO:
 - Email: ${venueData.email || "not provided"}
 ${venueData.additionalDetails ? `- Additional details: "${venueData.additionalDetails}"` : ""}
 `.trim();
+
+  const conversationContext = conversationHistory?.length
+    ? `\nCONVERSATION SO FAR:\n${conversationHistory
+        .slice(-10)
+        .map((m: { role: string; content: string }) => `${m.role === "user" ? "Owner" : "AI"}: ${m.content.slice(0, 200)}`)
+        .join("\n")}\n`
+    : "";
 
   try {
     const response = await openai.chat.completions.create({
@@ -33,8 +40,11 @@ RULES:
 - If asked about multiple things, cover them all briefly
 - Include specific numbers where relevant (capacities, distances, prices)
 - For Dutch venues, reference real nearby landmarks, stations, and areas when relevant
+- DO NOT repeat information you've already provided in the conversation
+- Focus your answer on the specific NEW topic being asked about
 
-${venueContext}`,
+${venueContext}
+${conversationContext}`,
         },
         {
           role: "user",
