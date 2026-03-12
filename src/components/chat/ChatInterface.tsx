@@ -145,10 +145,13 @@ export default function ChatInterface({ compact = false }: ChatInterfaceProps) {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const typewriterRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const scrollToBottom = useCallback(() => {
+  const scrollToBottom = useCallback((instant = false) => {
     const container = scrollContainerRef.current;
     if (container) {
-      container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
+      container.scrollTo({
+        top: container.scrollHeight,
+        behavior: instant ? "instant" : "smooth",
+      });
     }
   }, []);
 
@@ -244,7 +247,10 @@ export default function ChatInterface({ compact = false }: ChatInterfaceProps) {
   }, [input, resizeTextarea]);
 
   useEffect(() => {
-    scrollToBottom();
+    const last = messages[messages.length - 1];
+    // Use instant scroll during streaming to avoid fighting smooth animations
+    const isStreaming = last?.isStreaming;
+    scrollToBottom(isStreaming);
   }, [messages, scrollToBottom]);
 
   // Cleanup typewriter on unmount

@@ -1,4 +1,5 @@
-import { Bot, User, Image as ImageIcon, FileText } from "lucide-react";
+import { Bot, User, Image as ImageIcon, FileText, ChevronLeft, ChevronRight } from "lucide-react";
+import { useRef, useState, useCallback, useEffect } from "react";
 import VenueCard from "./VenueCard";
 import Link from "next/link";
 import type { ChatMessage as ChatMessageType } from "@/types";
@@ -54,6 +55,88 @@ function renderMarkdown(text: string) {
   }
 
   return elements;
+}
+
+function VenueCarousel({ venues, onAskAbout }: { venues: ChatMessageType["venues"]; onAskAbout?: (name: string) => void }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const checkScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 4);
+    setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 4);
+  }, []);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    checkScroll();
+    el.addEventListener("scroll", checkScroll, { passive: true });
+    const ro = new ResizeObserver(checkScroll);
+    ro.observe(el);
+    return () => {
+      el.removeEventListener("scroll", checkScroll);
+      ro.disconnect();
+    };
+  }, [checkScroll, venues]);
+
+  const scroll = (dir: "left" | "right") => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const cardWidth = 280; // approximate card width + gap
+    el.scrollBy({ left: dir === "left" ? -cardWidth : cardWidth, behavior: "smooth" });
+  };
+
+  if (!venues || venues.length === 0) return null;
+
+  return (
+    <div className="relative group/carousel">
+      {/* Left arrow */}
+      {canScrollLeft && (
+        <button
+          onClick={() => scroll("left")}
+          className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-black/70 border border-white/20 flex items-center justify-center text-white/80 hover:text-white hover:bg-black/90 transition-all shadow-lg backdrop-blur-sm -ml-1"
+          aria-label="Scroll left"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </button>
+      )}
+
+      {/* Cards */}
+      <div
+        ref={scrollRef}
+        className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide snap-x snap-mandatory scroll-smooth"
+      >
+        {venues.map((v) => (
+          <div key={v.slug} className="snap-start">
+            <VenueCard venue={v} onAskAbout={onAskAbout} />
+          </div>
+        ))}
+      </div>
+
+      {/* Right arrow */}
+      {canScrollRight && (
+        <button
+          onClick={() => scroll("right")}
+          className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-black/70 border border-white/20 flex items-center justify-center text-white/80 hover:text-white hover:bg-black/90 transition-all shadow-lg backdrop-blur-sm -mr-1"
+          aria-label="Scroll right"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </button>
+      )}
+
+      {/* Scroll hint for multiple cards */}
+      {canScrollRight && venues.length > 1 && (
+        <div className="flex items-center justify-center gap-1 mt-1.5">
+          <span className="text-[10px] text-white/40">
+            Swipe or use arrows to see {venues.length} venues
+          </span>
+        </div>
+      )}
+    </div>
+  );
 }
 
 function renderInline(text: string): React.ReactNode {
@@ -154,13 +237,9 @@ export default function ChatMessage({ message, onAskAboutVenue }: { message: Cha
           </div>
         )}
 
-        {/* Venue cards */}
+        {/* Venue cards carousel */}
         {message.venues && message.venues.length > 0 && (
-          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-            {message.venues.map((v) => (
-              <VenueCard key={v.slug} venue={v} onAskAbout={onAskAboutVenue} />
-            ))}
-          </div>
+          <VenueCarousel venues={message.venues} onAskAbout={onAskAboutVenue} />
         )}
 
         {/* Booking draft CTA */}
