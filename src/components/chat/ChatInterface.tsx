@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Send, Sparkles, Zap, ChevronDown, ChevronUp } from "lucide-react";
+import { Send, Sparkles, Zap, ChevronDown, ChevronUp, Plus, Image as ImageIcon, FileText, X } from "lucide-react";
 import ChatMessage from "./ChatMessage";
 import ExpertCTA from "../venues/ExpertCTA";
-import type { ChatMessage as ChatMessageType, VenueCardData, BookingDraftData } from "@/types";
+import type { ChatMessage as ChatMessageType, VenueCardData, BookingDraftData, ChatAttachment } from "@/types";
 
 const suggestions = [
   "We're planning a 2-day leadership retreat for 30 people near Amsterdam with breakout rooms and catering — what do you recommend?",
@@ -80,36 +80,16 @@ interface ChatInterfaceProps {
 // Demo scenario definitions
 const demoScenarios = {
   perfectMatch: {
-    label: "Perfect Match",
+    label: "Perfect Venue",
     description: "AI finds ideal venues",
-    initialMessage: "We're planning a leadership retreat for 40 people in Amsterdam — we need a conference center with breakout rooms, catering, AV equipment, and good public transport access. Budget is around €2,500 per day.",
-    followUps: [
-      "That sounds great! Can you check availability for the top recommendation for next Thursday?",
-      "Perfect, let's go ahead and start the booking process for that date.",
-    ],
+    initialMessage: "Hi! I'm planning a corporate event and I need help finding the right venue. Can you help me?",
   },
   expertCta: {
-    label: "Expert Referral",
-    description: "AI suggests OneMeeting experts",
-    initialMessage: "I need a very specific venue — a castle or historic estate near Maastricht for a formal 3-day diplomatic reception with 200 guests, multilingual staff, helicopter landing pad, and Michelin-star catering on-site. Budget is flexible.",
-    followUps: [
-      "Yes, I'd like to speak with a venue specialist who handles premium events like this.",
-    ],
+    label: "Live Agent",
+    description: "Extended hospitality demo",
+    initialMessage: "Hello, I'm looking for something very special and unique for an important event. Can you help me find the perfect venue?",
   },
 };
-
-// Auto-reply for venue finder demos — only uses scripted follow-ups, no AI generation
-function getFinderAutoReply(scenario: string, turnIndex: number): string {
-  const scenarioData = demoScenarios[scenario as keyof typeof demoScenarios];
-  if (!scenarioData) return "";
-
-  // Only use scripted follow-ups — stops the demo when they run out
-  if (turnIndex < scenarioData.followUps.length) {
-    return scenarioData.followUps[turnIndex];
-  }
-
-  return "";
-}
 
 export default function ChatInterface({ compact = false }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<ChatMessageType[]>([]);
@@ -118,12 +98,13 @@ export default function ChatInterface({ compact = false }: ChatInterfaceProps) {
   const [activeDemo, setActiveDemo] = useState<string | null>(null);
   const [showSamplePrompts, setShowSamplePrompts] = useState(false);
   const [demoFinished, setDemoFinished] = useState<string | null>(null); // tracks which demo finished (e.g. "expertCta")
-  const demoTurnRef = useRef(0);
-  const autoReplyTriggeredRef = useRef<string | null>(null);
+  const [pendingAttachments, setPendingAttachments] = useState<ChatAttachment[]>([]);
+  const [showUploadMenu, setShowUploadMenu] = useState(false);
+  const [activeDemoScenario, setActiveDemoScenario] = useState<string | null>(null);
+  const uploadMenuRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const sendMessageRef = useRef<((content: string) => Promise<void>) | null>(null);
 
   const scrollToBottom = useCallback(() => {
     const container = scrollContainerRef.current;
@@ -142,6 +123,83 @@ export default function ChatInterface({ compact = false }: ChatInterfaceProps) {
     textarea.style.overflowY = textarea.scrollHeight > maxHeight ? "auto" : "hidden";
   }, []);
 
+  const handleFileSelect = useCallback(async (accept: string) => {
+    setShowUploadMenu(false);
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = accept;
+    input.multiple = true;
+    input.onchange = async (e) => {
+      const files = (e.target as HTMLInputElement).files;
+      if (!files) return;
+
+      for (const file of Array.from(files)) {
+        const id = Date.now().toString() + Math.random().toString(36).slice(2);
+
+        if (file.type.startsWith("image/")) {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const dataUrl = reader.result as string;
+            setPendingAttachments(prev => [...prev, {
+              id,
+              type: "image",
+              name: file.name,
+              size: file.size,
+              preview: dataUrl,
+              data: dataUrl,
+            }]);
+          };
+          reader.readAsDataURL(file);
+        } else if (file.type === "application/pdf") {
+          const reader = new FileReader();
+          reader.onload = async () => {
+            const base64 = (reader.result as string).split(",")[1];
+            try {
+              const res = await fetch("/api/parse-pdf", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ base64Data: base64, fileName: file.name }),
+              });
+              const data = await res.json();
+              setPendingAttachments(prev => [...prev, {
+                id,
+                type: "pdf",
+                name: file.name,
+                size: file.size,
+                data: data.text || "Could not extract text from PDF",
+              }]);
+            } catch {
+              setPendingAttachments(prev => [...prev, {
+                id,
+                type: "pdf",
+                name: file.name,
+                size: file.size,
+                data: "Failed to parse PDF",
+              }]);
+            }
+          };
+          reader.readAsDataURL(file);
+        }
+      }
+    };
+    input.click();
+  }, []);
+
+  const removeAttachment = useCallback((id: string) => {
+    setPendingAttachments(prev => prev.filter(a => a.id !== id));
+  }, []);
+
+  // Close upload menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (uploadMenuRef.current && !uploadMenuRef.current.contains(e.target as Node)) {
+        setShowUploadMenu(false);
+      }
+    };
+    if (showUploadMenu) document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showUploadMenu]);
+
   useEffect(() => {
     resizeTextarea();
   }, [input, resizeTextarea]);
@@ -150,37 +208,6 @@ export default function ChatInterface({ compact = false }: ChatInterfaceProps) {
     scrollToBottom();
   }, [messages, scrollToBottom]);
 
-  // Auto-reply effect for demo mode
-  useEffect(() => {
-    if (!activeDemo || isLoading || messages.length === 0) return;
-
-    const lastMsg = messages[messages.length - 1];
-    if (lastMsg.role !== "assistant" || lastMsg.isStreaming) return;
-    if (lastMsg.content.startsWith("Sorry,")) return;
-    if (autoReplyTriggeredRef.current === lastMsg.id) return;
-
-    autoReplyTriggeredRef.current = lastMsg.id;
-
-    // Get next scripted reply (returns "" when exhausted)
-    const reply = getFinderAutoReply(activeDemo, demoTurnRef.current);
-
-    if (!reply) {
-      // Demo is complete — stop auto-replying
-      setDemoFinished(activeDemo);
-      setActiveDemo(null);
-      return;
-    }
-
-    let cancelled = false;
-    const timer = setTimeout(() => {
-      if (!cancelled) {
-        demoTurnRef.current++;
-        sendMessageRef.current?.(reply);
-      }
-    }, 1500);
-    return () => { cancelled = true; clearTimeout(timer); };
-  }, [messages, activeDemo, isLoading]);
-
   const sendMessage = async (content: string) => {
     if (!content.trim() || isLoading) return;
 
@@ -188,6 +215,7 @@ export default function ChatInterface({ compact = false }: ChatInterfaceProps) {
       id: Date.now().toString(),
       role: "user",
       content: content.trim(),
+      attachments: pendingAttachments.length > 0 ? [...pendingAttachments] : undefined,
     };
 
     const assistantMessage: ChatMessageType = {
@@ -199,10 +227,10 @@ export default function ChatInterface({ compact = false }: ChatInterfaceProps) {
 
     setMessages((prev) => [...prev, userMessage, assistantMessage]);
     setInput("");
+    setPendingAttachments([]);
     setIsLoading(true);
 
     try {
-      // Build messages for API (only role + content)
       const apiMessages = [...messages, userMessage].map((m) => ({
         role: m.role,
         content: m.content,
@@ -211,7 +239,15 @@ export default function ChatInterface({ compact = false }: ChatInterfaceProps) {
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: apiMessages }),
+        body: JSON.stringify({
+          messages: apiMessages,
+          demoScenario: activeDemoScenario,
+          attachments: userMessage.attachments?.map(a => ({
+            type: a.type,
+            name: a.name,
+            data: a.data,
+          })),
+        }),
       });
 
       if (!response.ok) {
@@ -353,16 +389,12 @@ export default function ChatInterface({ compact = false }: ChatInterfaceProps) {
     }
   };
 
-  // Keep ref in sync for auto-reply effect
-  sendMessageRef.current = sendMessage;
-
   const startDemo = (scenarioKey: string) => {
     const scenario = demoScenarios[scenarioKey as keyof typeof demoScenarios];
     if (!scenario) return;
+    setActiveDemoScenario(scenarioKey);
     setActiveDemo(scenarioKey);
     setDemoFinished(null);
-    demoTurnRef.current = 0;
-    autoReplyTriggeredRef.current = null;
     sendMessage(scenario.initialMessage);
   };
 
@@ -389,7 +421,7 @@ export default function ChatInterface({ compact = false }: ChatInterfaceProps) {
         <div className="px-4 py-2 border-b border-white/10 flex items-center gap-2">
           <Zap className="h-3.5 w-3.5 text-om-orange" />
           <span className="text-xs font-medium text-om-orange">
-            Auto Demo: {demoScenarios[activeDemo as keyof typeof demoScenarios]?.label}
+            Demo: {demoScenarios[activeDemo as keyof typeof demoScenarios]?.label}
           </span>
           <button
             type="button"
@@ -451,7 +483,7 @@ export default function ChatInterface({ compact = false }: ChatInterfaceProps) {
                   {suggestions.map((s) => (
                     <button
                       key={s}
-                      onClick={() => sendMessage(s)}
+                      onClick={() => setInput(s)}
                       className="glass-pill px-4 py-2 text-xs text-left hover:border-white/30 transition-colors text-white/50 hover:text-white/70"
                     >
                       {s}
@@ -472,7 +504,7 @@ export default function ChatInterface({ compact = false }: ChatInterfaceProps) {
                     <button
                       key={j}
                       type="button"
-                      onClick={() => sendMessage(s)}
+                      onClick={() => setInput(s)}
                       disabled={isLoading}
                       className="px-3 py-1.5 rounded-lg bg-om-orange/10 border border-om-orange/20 text-om-orange text-xs font-medium hover:bg-om-orange/20 transition-colors disabled:opacity-50"
                     >
@@ -495,7 +527,60 @@ export default function ChatInterface({ compact = false }: ChatInterfaceProps) {
 
       {/* Input area */}
       <div className="border-t border-white/10 p-4">
-        <form onSubmit={handleSubmit} className="flex items-end gap-3">
+        {/* Pending attachments preview */}
+        {pendingAttachments.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-3">
+            {pendingAttachments.map(att => (
+              <div key={att.id} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs">
+                {att.type === "image" ? (
+                  <ImageIcon className="h-3.5 w-3.5 text-om-orange" />
+                ) : (
+                  <FileText className="h-3.5 w-3.5 text-om-orange" />
+                )}
+                <span className="text-white/70 max-w-[150px] truncate">{att.name}</span>
+                <button
+                  type="button"
+                  onClick={() => removeAttachment(att.id)}
+                  className="text-white/30 hover:text-white/60 transition-colors"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        <form onSubmit={handleSubmit} className="flex items-end gap-2">
+          {/* Upload button */}
+          <div className="relative" ref={uploadMenuRef}>
+            <button
+              type="button"
+              onClick={() => setShowUploadMenu(v => !v)}
+              className="p-3 rounded-xl text-white/40 hover:text-white/70 hover:bg-white/5 transition-colors shrink-0 self-end"
+              title="Attach file"
+            >
+              <Plus className="h-4 w-4" />
+            </button>
+            {showUploadMenu && (
+              <div className="absolute bottom-full left-0 mb-2 py-1 rounded-xl bg-[#1a1a2e] border border-white/10 shadow-xl min-w-[160px] animate-fade-in-up z-10">
+                <button
+                  type="button"
+                  onClick={() => handleFileSelect("image/*")}
+                  className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-white/70 hover:text-white hover:bg-white/5 transition-colors"
+                >
+                  <ImageIcon className="h-4 w-4 text-om-orange" />
+                  Upload Image
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleFileSelect(".pdf")}
+                  className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-white/70 hover:text-white hover:bg-white/5 transition-colors"
+                >
+                  <FileText className="h-4 w-4 text-om-orange" />
+                  Upload PDF
+                </button>
+              </div>
+            )}
+          </div>
           <textarea
             ref={inputRef}
             value={input}
