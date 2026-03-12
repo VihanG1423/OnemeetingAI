@@ -258,7 +258,10 @@ async function searchVenues(args: Record<string, unknown>) {
     if (venueType && v.venueType !== venueType) return false;
     if (amenities && amenities.length > 0) {
       const venueAmenities = JSON.parse(v.amenities) as string[];
-      if (!amenities.every((a) => venueAmenities.includes(a))) return false;
+      // Soft match: venue must have at least half of requested amenities
+      // AI-powered scoreVenueMatches handles fine-grained scoring downstream
+      const matchCount = amenities.filter((a) => venueAmenities.includes(a)).length;
+      if (matchCount < Math.ceil(amenities.length / 2)) return false;
     }
     return true;
   });
