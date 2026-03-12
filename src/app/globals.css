@@ -13,21 +13,21 @@
 html {
   scroll-behavior: smooth;
   scrollbar-width: thin;
-  scrollbar-color: rgba(255,255,255,0.15) transparent;
+  scrollbar-color: rgba(255,255,255,0.35) rgba(255,255,255,0.05);
 }
 /* Webkit global scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: rgba(255,255,255,0.05);
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255,255,255,0.15);
-  border-radius: 3px;
+  background: rgba(255,255,255,0.35);
+  border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255,255,255,0.25);
+  background: rgba(255,255,255,0.5);
 }
 
 /* ===== Single Dark Theme (Orange) ===== */
@@ -383,11 +383,11 @@ body {
 }
 
 /* Custom scrollbar */
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.25); }
-* { scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, 0.15) transparent; }
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.05); }
+::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.35); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.5); }
+* { scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, 0.35) rgba(255, 255, 255, 0.05); }
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 
