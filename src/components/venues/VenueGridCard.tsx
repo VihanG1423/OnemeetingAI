@@ -62,7 +62,7 @@ export default function VenueGridCard({ venue, matchScore }: VenueGridCardProps)
     <Link href={`/venues/${venue.slug}`} className="block group">
       <div className="glass-card-light overflow-hidden hover:translate-y-[-2px]">
         {/* Image */}
-        <div className="relative h-48 overflow-hidden">
+        <div className="relative h-36 sm:h-48 overflow-hidden">
           <Image
             src={firstImage}
             alt={venue.name}
@@ -94,7 +94,7 @@ export default function VenueGridCard({ venue, matchScore }: VenueGridCardProps)
         </div>
 
         {/* Content */}
-        <div className="p-5">
+        <div className="p-4 sm:p-5">
           <h3 className="text-base font-semibold text-white mb-1 line-clamp-1">
             {venue.name}
           </h3>

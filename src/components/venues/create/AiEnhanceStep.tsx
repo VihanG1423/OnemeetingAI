@@ -61,6 +61,20 @@ export default function AiEnhanceStep({ formData, updateForm }: AiEnhanceStepPro
     }
   }, []);
 
+  // Auto-resize textarea as user types
+  const resizeTextarea = useCallback(() => {
+    const textarea = inputRef.current;
+    if (!textarea) return;
+    textarea.style.height = "auto";
+    const maxHeight = 120;
+    textarea.style.height = `${Math.min(textarea.scrollHeight, maxHeight)}px`;
+    textarea.style.overflowY = textarea.scrollHeight > maxHeight ? "auto" : "hidden";
+  }, []);
+
+  useEffect(() => {
+    resizeTextarea();
+  }, [input, resizeTextarea]);
+
   useEffect(() => {
     scrollToBottom();
   }, [messages, scrollToBottom]);
@@ -448,7 +462,7 @@ export default function AiEnhanceStep({ formData, updateForm }: AiEnhanceStepPro
 
           {/* Input */}
           <div className="border-t border-white/10 p-3">
-            <form onSubmit={handleSubmit} className="flex gap-2">
+            <form onSubmit={handleSubmit} className="flex items-end gap-2">
               <textarea
                 ref={inputRef}
                 value={input}
@@ -457,9 +471,10 @@ export default function AiEnhanceStep({ formData, updateForm }: AiEnhanceStepPro
                 onFocus={stopTypewriter}
                 placeholder="Tell the AI about your venue..."
                 rows={1}
-                className={`glass-input flex-1 px-3 py-2.5 text-sm resize-none ${
+                className={`glass-input flex-1 px-3 py-2.5 text-sm resize-none overflow-hidden ${
                   isSuggesting ? "text-om-orange/80" : ""
                 }`}
+                style={{ minHeight: "44px" }}
                 disabled={isLoading}
               />
               <button

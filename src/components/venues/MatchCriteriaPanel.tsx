@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Sparkles, X, Loader2, Shuffle } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Sparkles, X, Loader2, Shuffle, ChevronDown, ChevronUp } from "lucide-react";
 import { venueTypeLabel } from "@/lib/utils";
 import VenueGridCard from "./VenueGridCard";
 import VenueGridCardSkeleton from "./VenueGridCardSkeleton";
@@ -43,6 +43,16 @@ export default function MatchCriteriaPanel({
   const [selectedVenueTypes, setSelectedVenueTypes] = useState<string[]>([]);
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
   const [description, setDescription] = useState("");
+  const [isExpanded, setIsExpanded] = useState(true);
+
+  // Default collapsed on mobile, expanded on desktop
+  useEffect(() => {
+    const mql = window.matchMedia("(max-width: 767px)");
+    setIsExpanded(!mql.matches);
+    const handler = (e: MediaQueryListEvent) => setIsExpanded(!e.matches);
+    mql.addEventListener("change", handler);
+    return () => mql.removeEventListener("change", handler);
+  }, []);
 
   const toggleCity = (city: string) => {
     setSelectedCities((prev) =>
@@ -118,33 +128,69 @@ export default function MatchCriteriaPanel({
     selectedAmenities.length > 0 ||
     description;
 
+  const activeFilterCount = [
+    capacity,
+    budget,
+    selectedCities.length > 0,
+    selectedVenueTypes.length > 0,
+    selectedAmenities.length > 0,
+    description,
+  ].filter(Boolean).length;
+
   return (
-    <div className="glass-card p-5 mb-6" style={{ borderColor: "rgba(255,107,0,0.2)" }}>
-      {/* Header — always visible, not collapsible */}
-      <div className="flex items-center gap-2.5 mb-5">
-        <div className="w-8 h-8 rounded-full bg-om-orange/15 flex items-center justify-center">
+    <div className="glass-card p-4 sm:p-5 mb-6" style={{ borderColor: "rgba(255,107,0,0.2)" }}>
+      {/* Header — always visible, toggles collapse */}
+      <button
+        type="button"
+        onClick={() => setIsExpanded((v) => !v)}
+        className="flex items-center gap-2.5 w-full text-left"
+      >
+        <div className="w-8 h-8 rounded-full bg-om-orange/15 flex items-center justify-center shrink-0">
           <Sparkles className="h-4 w-4 text-om-orange" />
         </div>
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <h3 className="text-sm font-semibold text-white">
             AI Venue Matcher
+            {!isExpanded && activeFilterCount > 0 && (
+              <span className="ml-2 inline-flex items-center justify-center w-5 h-5 text-[10px] font-bold rounded-full bg-om-orange text-white">
+                {activeFilterCount}
+              </span>
+            )}
           </h3>
           <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-            Tell us what you need and we&apos;ll score every venue for you
+            {isExpanded
+              ? "Tell us what you need and we'll score every venue for you"
+              : "Tap to set your search criteria"}
           </p>
         </div>
-        <button
-          onClick={fillDemo}
-          title="Fill with random demo data"
-          className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-full transition-colors hover:bg-white/10"
-          style={{ color: "var(--text-muted)" }}
-        >
-          <Shuffle className="h-3 w-3" />
-          Demo
-        </button>
-      </div>
+        <div className="flex items-center gap-2 shrink-0">
+          {isExpanded && (
+            <span
+              role="button"
+              onClick={(e) => { e.stopPropagation(); fillDemo(); }}
+              title="Fill with random demo data"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-full transition-colors hover:bg-white/10"
+              style={{ color: "var(--text-muted)" }}
+            >
+              <Shuffle className="h-3 w-3" />
+              Demo
+            </span>
+          )}
+          {isExpanded ? (
+            <ChevronUp className="h-4 w-4 text-white/40" />
+          ) : (
+            <ChevronDown className="h-4 w-4 text-white/40" />
+          )}
+        </div>
+      </button>
 
-      {/* Criteria Form — always expanded */}
+      {/* Criteria Form — collapsible */}
+      <div
+        className={`grid transition-all duration-300 ease-in-out ${
+          isExpanded ? "grid-rows-[1fr] opacity-100 mt-5" : "grid-rows-[0fr] opacity-0 mt-0"
+        }`}
+      >
+      <div className="overflow-hidden">
       <div className="space-y-4">
         {/* Row 1: Capacity + Budget */}
         <div className="grid grid-cols-2 gap-3">
@@ -302,6 +348,8 @@ export default function MatchCriteriaPanel({
             </button>
           )}
         </div>
+      </div>
+      </div>
       </div>
 
       {/* ─── Results Area ─── */}

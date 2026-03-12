@@ -132,6 +132,20 @@ export default function ChatInterface({ compact = false }: ChatInterfaceProps) {
     }
   }, []);
 
+  // Auto-resize textarea as user types
+  const resizeTextarea = useCallback(() => {
+    const textarea = inputRef.current;
+    if (!textarea) return;
+    textarea.style.height = "auto";
+    const maxHeight = 120; // ~5 lines
+    textarea.style.height = `${Math.min(textarea.scrollHeight, maxHeight)}px`;
+    textarea.style.overflowY = textarea.scrollHeight > maxHeight ? "auto" : "hidden";
+  }, []);
+
+  useEffect(() => {
+    resizeTextarea();
+  }, [input, resizeTextarea]);
+
   useEffect(() => {
     scrollToBottom();
   }, [messages, scrollToBottom]);
@@ -479,7 +493,7 @@ export default function ChatInterface({ compact = false }: ChatInterfaceProps) {
 
       {/* Input area */}
       <div className="border-t border-white/10 p-4">
-        <form onSubmit={handleSubmit} className="flex gap-3">
+        <form onSubmit={handleSubmit} className="flex items-end gap-3">
           <textarea
             ref={inputRef}
             value={input}
@@ -487,13 +501,14 @@ export default function ChatInterface({ compact = false }: ChatInterfaceProps) {
             onKeyDown={handleKeyDown}
             placeholder="Describe your ideal meeting venue..."
             rows={1}
-            className="glass-input flex-1 px-4 py-3 text-sm resize-none"
+            className="glass-input flex-1 px-4 py-3 text-sm resize-none overflow-hidden"
+            style={{ minHeight: "44px" }}
             disabled={isLoading}
           />
           <button
             type="submit"
             disabled={isLoading || !input.trim()}
-            className="bg-om-orange hover:bg-om-orange-dark disabled:opacity-40 text-white px-4 py-3 rounded-xl transition-colors"
+            className="bg-om-orange hover:bg-om-orange-dark disabled:opacity-40 text-white px-4 py-3 rounded-xl transition-colors shrink-0 self-end"
           >
             <Send className="h-4 w-4" />
           </button>

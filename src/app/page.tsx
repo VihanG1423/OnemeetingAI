@@ -54,15 +54,15 @@ export default async function HomePage() {
   return (
     <div>
       {/* Hero Section */}
-      <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-10 pb-16">
-        <div className="text-center mb-8 animate-fade-in-up">
-          <h1 className="text-4xl sm:text-5xl font-bold text-white mb-4 tracking-tight">
+      <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-6 sm:pt-10 pb-10 sm:pb-16">
+        <div className="text-center mb-6 sm:mb-8 animate-fade-in-up">
+          <h1 className="text-3xl sm:text-5xl font-bold text-white mb-3 sm:mb-4 tracking-tight">
             Find Your Perfect
             <br />
             <span className="text-om-orange">Meeting Space</span>
           </h1>
           <p
-            className="text-lg max-w-2xl mx-auto"
+            className="text-base sm:text-lg max-w-2xl mx-auto"
             style={{ color: "var(--text-secondary)" }}
           >
             AI-powered venue search across 1500+ locations in the Netherlands.
@@ -77,7 +77,7 @@ export default async function HomePage() {
       </section>
 
       {/* How It Works */}
-      <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16">
+      <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 sm:py-16">
         <h2 className="text-2xl font-bold text-white text-center mb-10">
           How It Works
         </h2>
@@ -106,7 +106,7 @@ export default async function HomePage() {
       </section>
 
       {/* Featured Venues */}
-      <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16">
+      <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 sm:py-16">
         <div className="flex items-center justify-between mb-8">
           <h2 className="text-2xl font-bold text-white">Popular Venues</h2>
           <Link
@@ -125,7 +125,7 @@ export default async function HomePage() {
       </section>
 
       {/* Cities */}
-      <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16">
+      <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 sm:py-16">
         <h2 className="text-2xl font-bold text-white text-center mb-10">
           Venues Across the Netherlands
         </h2>

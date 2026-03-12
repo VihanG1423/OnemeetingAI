@@ -455,6 +455,12 @@ body {
   to { opacity: 1; transform: scale(1); }
 }
 
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.animate-fade-in { animation: fade-in 0.2s ease-out both; }
 .animate-fade-in-up { animation: fade-in-up 0.6s ease-out both; }
 .animate-fade-in-scale { animation: fade-in-scale 0.5s ease-out both; }
 
@@ -473,6 +479,25 @@ body {
   background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%);
   background-size: 200% 100%;
   animation: skeleton-shimmer 1.5s ease-in-out infinite;
+}
+
+/* ===== Safe Area (notched devices) ===== */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  body {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .glass-navbar {
+    padding-top: env(safe-area-inset-top);
+  }
+}
+
+/* ===== Mobile Touch Targets ===== */
+@media (max-width: 640px) {
+  .glass-input,
+  .glass-select {
+    min-height: 44px;
+    font-size: 16px; /* Prevents iOS zoom on focus */
+  }
 }
 
 /* ===== Reduced Motion ===== */

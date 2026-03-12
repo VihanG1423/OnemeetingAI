@@ -25,7 +25,7 @@ export default function ComposeMeeting({ venue, formData, updateForm }: ComposeM
   return (
     <div className="space-y-6">
       {/* Date & Time */}
-      <div className="glass-card p-6">
+      <div className="glass-card p-4 sm:p-6">
         <h3 className="text-base font-semibold text-white mb-4 flex items-center gap-2">
           <CalendarDays className="h-4 w-4 text-om-orange" />
           Date & Time
@@ -68,7 +68,7 @@ export default function ComposeMeeting({ venue, formData, updateForm }: ComposeM
           </div>
         </div>
 
-        <div className="flex items-center gap-6">
+        <div className="flex flex-wrap items-center gap-4 sm:gap-6">
           <label className="flex items-center gap-2 cursor-pointer">
             <input
               type="radio"
@@ -103,7 +103,7 @@ export default function ComposeMeeting({ venue, formData, updateForm }: ComposeM
       </div>
 
       {/* Meeting Type & Layout */}
-      <div className="glass-card p-6">
+      <div className="glass-card p-4 sm:p-6">
         <h3 className="text-base font-semibold text-white mb-4 flex items-center gap-2">
           <Layout className="h-4 w-4 text-om-orange" />
           Meeting Setup
@@ -166,7 +166,7 @@ export default function ComposeMeeting({ venue, formData, updateForm }: ComposeM
       </div>
 
       {/* Program */}
-      <div className="glass-card p-6">
+      <div className="glass-card p-4 sm:p-6">
         <h3 className="text-base font-semibold text-white mb-4 flex items-center gap-2">
           <FileText className="h-4 w-4 text-om-orange" />
           Program & Requirements
@@ -191,7 +191,7 @@ export default function ComposeMeeting({ venue, formData, updateForm }: ComposeM
       </div>
 
       {/* Catering */}
-      <div className="glass-card p-6">
+      <div className="glass-card p-4 sm:p-6">
         <h3 className="text-base font-semibold text-white mb-4 flex items-center gap-2">
           <UtensilsCrossed className="h-4 w-4 text-om-orange" />
           Catering
@@ -223,7 +223,7 @@ export default function ComposeMeeting({ venue, formData, updateForm }: ComposeM
       </div>
 
       {/* AV Resources */}
-      <div className="glass-card p-6">
+      <div className="glass-card p-4 sm:p-6">
         <h3 className="text-base font-semibold text-white mb-4 flex items-center gap-2">
           <Speaker className="h-4 w-4 text-om-orange" />
           Audiovisual resources
@@ -263,7 +263,7 @@ export default function ComposeMeeting({ venue, formData, updateForm }: ComposeM
       </div>
 
       {/* Hotel Rooms */}
-      <div className="glass-card p-6">
+      <div className="glass-card p-4 sm:p-6">
         <h3 className="text-base font-semibold text-white mb-3 flex items-center gap-2">
           <Hotel className="h-4 w-4 text-om-orange" />
           Hotel rooms
@@ -292,7 +292,7 @@ export default function ComposeMeeting({ venue, formData, updateForm }: ComposeM
       </div>
 
       {/* Other considerations */}
-      <div className="glass-card p-6">
+      <div className="glass-card p-4 sm:p-6">
         <label className="block text-sm font-medium text-white mb-1.5">
           Other things to consider?
         </label>
