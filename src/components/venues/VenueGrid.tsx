@@ -1,56 +1,49 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Search } from "lucide-react";
 import VenueGridCard from "./VenueGridCard";
 import MatchCriteriaPanel from "./MatchCriteriaPanel";
 import ExpertCTA from "./ExpertCTA";
-import { venueTypeLabel } from "@/lib/utils";
 import type { Venue, MatchCriteria, VenueMatchResult } from "@/types";
-
-const cities = ["All", "Amsterdam", "Rotterdam", "Utrecht", "The Hague", "Eindhoven"];
-const venueTypes = ["all", "conference_center", "meeting_room", "workshop_space", "unique_venue", "hotel", "coworking"];
 
 interface VenueGridProps {
   venues: Venue[];
-  initialCity?: string;
-  initialType?: string;
 }
 
-export default function VenueGrid({ venues, initialCity, initialType }: VenueGridProps) {
-  const [city, setCity] = useState(initialCity || "All");
-  const [type, setType] = useState(initialType || "all");
-  const [search, setSearch] = useState("");
+export default function VenueGrid({ venues }: VenueGridProps) {
   const [matchScores, setMatchScores] = useState<Map<string, VenueMatchResult>>(new Map());
+  const [scoredVenueIds, setScoredVenueIds] = useState<Set<string>>(new Set());
   const [isScoring, setIsScoring] = useState(false);
   const [activeCriteria, setActiveCriteria] = useState<MatchCriteria | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const filtered = useMemo(() => {
-    let results = venues.filter((v) => {
-      if (city !== "All" && v.city !== city) return false;
-      if (type !== "all" && v.venueType !== type) return false;
-      if (search) {
-        const q = search.toLowerCase();
-        return (
-          v.name.toLowerCase().includes(q) ||
-          v.city.toLowerCase().includes(q) ||
-          v.description.toLowerCase().includes(q)
-        );
-      }
-      return true;
-    });
+  const hasResults = matchScores.size > 0;
 
-    // Sort by match score if we have scores
-    if (matchScores.size > 0) {
-      results = [...results].sort((a, b) => {
-        const scoreA = matchScores.get(a.id)?.matchPercentage ?? -1;
-        const scoreB = matchScores.get(b.id)?.matchPercentage ?? -1;
-        return scoreB - scoreA;
-      });
+  // Split venues into matched (scored) and ruled-out (not scored)
+  const { matchedVenues, ruledOutVenues } = useMemo(() => {
+    if (!hasResults) {
+      return { matchedVenues: [], ruledOutVenues: [] };
     }
 
-    return results;
-  }, [venues, city, type, search, matchScores]);
+    const matched: Array<{ venue: Venue; score: VenueMatchResult }> = [];
+    const ruledOut: Venue[] = [];
+
+    for (const venue of venues) {
+      if (scoredVenueIds.has(venue.id)) {
+        const score = matchScores.get(venue.id);
+        if (score) {
+          matched.push({ venue, score });
+        }
+      } else {
+        ruledOut.push(venue);
+      }
+    }
+
+    // Sort matched by score descending
+    matched.sort((a, b) => b.score.matchPercentage - a.score.matchPercentage);
+
+    return { matchedVenues: matched, ruledOutVenues: ruledOut };
+  }, [venues, matchScores, scoredVenueIds, hasResults]);
 
   const bestMatch = useMemo(() => {
     if (matchScores.size === 0) return 100;
@@ -61,6 +54,7 @@ export default function VenueGrid({ venues, initialCity, initialType }: VenueGri
   const handleMatchSearch = async (criteria: MatchCriteria) => {
     setIsScoring(true);
     setActiveCriteria(criteria);
+    setError(null);
     try {
       const res = await fetch("/api/venues/match", {
         method: "POST",
@@ -68,15 +62,21 @@ export default function VenueGrid({ venues, initialCity, initialType }: VenueGri
         body: JSON.stringify({ criteria }),
       });
       const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to score venues");
+      }
       if (data.scores) {
         const scoreMap = new Map<string, VenueMatchResult>();
         for (const score of data.scores) {
           scoreMap.set(score.venueId, score);
         }
         setMatchScores(scoreMap);
+        setScoredVenueIds(new Set(data.scoredVenueIds || []));
       }
     } catch {
-      console.error("Failed to score venues");
+      setError("Something went wrong scoring venues. Please try again.");
+      setMatchScores(new Map());
+      setScoredVenueIds(new Set());
     } finally {
       setIsScoring(false);
     }
@@ -84,98 +84,63 @@ export default function VenueGrid({ venues, initialCity, initialType }: VenueGri
 
   const handleClearMatch = () => {
     setMatchScores(new Map());
+    setScoredVenueIds(new Set());
     setActiveCriteria(null);
+    setError(null);
   };
 
   return (
     <div>
-      {/* AI Match Criteria Panel */}
+      {/* AI Venue Matcher — the single entry point for filtering and scoring */}
       <MatchCriteriaPanel
         onSearch={handleMatchSearch}
         onClear={handleClearMatch}
         isLoading={isScoring}
-        hasResults={matchScores.size > 0}
+        hasResults={hasResults}
+        matchedVenues={matchedVenues}
+        error={error}
       />
 
-      {/* Filters */}
-      <div className="mb-8 space-y-4">
-        {/* Search */}
-        <div className="relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: "var(--text-muted)" }} />
-          <input
-            type="text"
-            placeholder="Search venues..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="glass-input w-full pl-11 pr-4 py-3 text-sm"
-          />
-        </div>
-
-        {/* City pills */}
-        <div className="flex flex-wrap gap-2">
-          {cities.map((c) => (
-            <button
-              key={c}
-              onClick={() => setCity(c)}
-              className={
-                city === c
-                  ? "glass-pill-orange px-4 py-1.5 text-sm font-medium"
-                  : "glass-pill px-4 py-1.5 text-sm font-medium"
-              }
-              style={city !== c ? { color: "var(--text-secondary)" } : undefined}
-            >
-              {c}
-            </button>
-          ))}
-        </div>
-
-        {/* Type pills */}
-        <div className="flex flex-wrap gap-2">
-          {venueTypes.map((t) => (
-            <button
-              key={t}
-              onClick={() => setType(t)}
-              className={
-                type === t
-                  ? "glass-pill-orange px-3 py-1 text-xs font-medium"
-                  : "glass-pill px-3 py-1 text-xs font-medium"
-              }
-              style={type !== t ? { color: "var(--text-secondary)" } : undefined}
-            >
-              {t === "all" ? "All Types" : venueTypeLabel(t)}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Results count */}
-      <p className="text-sm mb-6" style={{ color: "var(--text-muted)" }}>
-        {filtered.length} venue{filtered.length !== 1 ? "s" : ""} found
-        {matchScores.size > 0 && " — sorted by match score"}
-      </p>
-
-      {/* Grid */}
-      {filtered.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filtered.map((venue) => (
-            <VenueGridCard
-              key={venue.id}
-              venue={venue}
-              matchScore={matchScores.get(venue.id)}
-            />
-          ))}
-        </div>
-      ) : (
-        <div className="glass-card p-12 text-center">
-          <p className="text-lg font-medium text-white mb-2">No venues found</p>
-          <p className="text-sm" style={{ color: "var(--text-muted)" }}>
-            Try adjusting your filters or search term.
+      {/* Before matching: show all venues in a flat grid */}
+      {!hasResults && !isScoring && (
+        <>
+          <p className="text-sm mb-6" style={{ color: "var(--text-muted)" }}>
+            {venues.length} venue{venues.length !== 1 ? "s" : ""} available
           </p>
-        </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {venues.map((venue) => (
+              <VenueGridCard key={venue.id} venue={venue} />
+            ))}
+          </div>
+        </>
       )}
 
-      {/* Expert CTA - show when match scores are low or always at bottom */}
-      {(bestMatch < 70 || matchScores.size > 0) && (
+      {/* After matching: show ruled-out venues below a divider */}
+      {hasResults && ruledOutVenues.length > 0 && (
+        <>
+          {/* Divider */}
+          <div className="flex items-center gap-4 my-8">
+            <div className="flex-1 h-px" style={{ background: "var(--border-primary)" }} />
+            <span className="text-xs font-medium" style={{ color: "var(--text-muted)" }}>
+              Other Venues
+            </span>
+            <div className="flex-1 h-px" style={{ background: "var(--border-primary)" }} />
+          </div>
+
+          {/* Ruled-out venue grid — dimmed */}
+          <div
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+            style={{ opacity: 0.7 }}
+          >
+            {ruledOutVenues.map((venue) => (
+              <VenueGridCard key={venue.id} venue={venue} />
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* Expert CTA — show when best match score < 70% */}
+      {hasResults && bestMatch < 70 && (
         <div className="mt-8">
           <ExpertCTA criteria={activeCriteria || undefined} />
         </div>

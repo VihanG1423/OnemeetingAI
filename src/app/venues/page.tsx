@@ -7,13 +7,7 @@ export const metadata = {
   description: "Explore 1500+ meeting and event venues across the Netherlands.",
 };
 
-export default async function VenuesPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ city?: string; type?: string }>;
-}) {
-  const params = await searchParams;
-
+export default async function VenuesPage() {
   const rawVenues = await prisma.venue.findMany({
     where: { status: "approved" },
     orderBy: { rating: "desc" },
@@ -30,11 +24,7 @@ export default async function VenuesPage({
         </p>
       </div>
 
-      <VenueGrid
-        venues={venues}
-        initialCity={params.city}
-        initialType={params.type}
-      />
+      <VenueGrid venues={venues} />
     </div>
   );
 }
