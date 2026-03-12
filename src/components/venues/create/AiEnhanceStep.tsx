@@ -262,7 +262,6 @@ export default function AiEnhanceStep({ formData, updateForm }: AiEnhanceStepPro
 
     const lastMsg = messages[messages.length - 1];
     if (lastMsg.role !== "assistant" || lastMsg.isStreaming) return;
-    if (!lastMsg.content.includes("?")) return;
 
     setIsSuggesting(true);
 
@@ -301,13 +300,12 @@ export default function AiEnhanceStep({ formData, updateForm }: AiEnhanceStepPro
     }
   }, [isSuggesting, isLoading, messages, formData]);
 
-  // Demo mode: auto-suggest after AI finishes asking a question
+  // Demo mode: auto-suggest after AI finishes responding
   useEffect(() => {
     if (!demoMode || isLoading || isSuggesting || messages.length === 0) return;
 
     const lastMsg = messages[messages.length - 1];
     if (lastMsg.role !== "assistant" || lastMsg.isStreaming) return;
-    if (!lastMsg.content.includes("?")) return;
     if (suggestedForMsgRef.current === lastMsg.id) return;
 
     suggestedForMsgRef.current = lastMsg.id;
@@ -446,7 +444,7 @@ export default function AiEnhanceStep({ formData, updateForm }: AiEnhanceStepPro
                       <button
                         key={i}
                         type="button"
-                        onClick={() => sendMessage(s)}
+                        onClick={() => setInput(s)}
                         disabled={isLoading}
                         className="px-3 py-1.5 rounded-lg bg-om-orange/10 border border-om-orange/20 text-om-orange text-xs font-medium hover:bg-om-orange/20 transition-colors disabled:opacity-50"
                       >
