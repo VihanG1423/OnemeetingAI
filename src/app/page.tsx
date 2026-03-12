@@ -53,55 +53,55 @@ export default async function HomePage() {
 
   return (
     <div>
-      {/* Hero Section */}
+      {/* Hero Section — side-by-side on desktop */}
       <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-6 sm:pt-10 pb-10 sm:pb-16">
-        <div className="text-center mb-6 sm:mb-8 animate-fade-in-up">
-          <h1 className="text-3xl sm:text-5xl font-bold text-white mb-3 sm:mb-4 tracking-tight">
-            Find Your Perfect
-            <br />
-            <span className="text-om-orange">Meeting Space</span>
-          </h1>
-          <p
-            className="text-base sm:text-lg max-w-2xl mx-auto"
-            style={{ color: "var(--text-secondary)" }}
-          >
-            AI-powered venue search across 1500+ locations in the Netherlands.
-            Tell our AI what you need and get instant recommendations.
-          </p>
-        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-start">
+          {/* Left: Hero text + How It Works */}
+          <div className="animate-fade-in-up">
+            <h1 className="text-3xl sm:text-5xl font-bold text-white mb-3 sm:mb-4 tracking-tight">
+              Find Your Perfect
+              <br />
+              <span className="text-om-orange">Meeting Space</span>
+            </h1>
+            <p
+              className="text-base sm:text-lg mb-8 lg:mb-10"
+              style={{ color: "var(--text-secondary)" }}
+            >
+              AI-powered venue search across 1500+ locations in the Netherlands.
+              Tell our AI what you need and get instant recommendations.
+            </p>
 
-        {/* Chat Interface */}
-        <div className="max-w-4xl mx-auto animate-fade-in-up stagger-2">
-          <ChatInterface compact />
-        </div>
-      </section>
+            {/* How It Works — inline on left side */}
+            <div className="space-y-4">
+              {steps.map((step, i) => {
+                const Icon = step.icon;
+                return (
+                  <div
+                    key={step.title}
+                    className="flex items-start gap-4 animate-fade-in-up"
+                    style={{ animationDelay: `${(i + 1) * 0.1}s` }}
+                  >
+                    <div className="w-10 h-10 rounded-xl bg-om-orange/15 border border-om-orange/25 flex items-center justify-center shrink-0">
+                      <Icon className="h-5 w-5 text-om-orange" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-semibold text-white mb-1">
+                        {step.title}
+                      </h3>
+                      <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                        {step.description}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
 
-      {/* How It Works */}
-      <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 sm:py-16">
-        <h2 className="text-2xl font-bold text-white text-center mb-10">
-          How It Works
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {steps.map((step, i) => {
-            const Icon = step.icon;
-            return (
-              <div
-                key={step.title}
-                className="glass-card p-6 text-center animate-fade-in-up"
-                style={{ animationDelay: `${(i + 1) * 0.1}s` }}
-              >
-                <div className="w-12 h-12 rounded-xl bg-om-orange/15 border border-om-orange/25 flex items-center justify-center mx-auto mb-4">
-                  <Icon className="h-6 w-6 text-om-orange" />
-                </div>
-                <h3 className="text-base font-semibold text-white mb-2">
-                  {step.title}
-                </h3>
-                <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-                  {step.description}
-                </p>
-              </div>
-            );
-          })}
+          {/* Right: Chat Interface */}
+          <div className="animate-fade-in-up stagger-2 lg:sticky lg:top-24">
+            <ChatInterface compact />
+          </div>
         </div>
       </section>
 
