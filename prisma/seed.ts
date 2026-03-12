@@ -1677,8 +1677,8 @@ const venues = [
 async function main() {
   console.log("Seeding database with Dutch venues...");
 
-  await prisma.venue.deleteMany();
   await prisma.booking.deleteMany();
+  await prisma.venue.deleteMany();
 
   for (const venue of venues) {
     const amenities = venue.amenities;
