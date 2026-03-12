@@ -79,38 +79,18 @@ export default function VenueGridCard({ venue, matchScore }: VenueGridCardProps)
             </span>
           </div>
 
-          {/* Top-right: match ring (matched) or price badge (normal) */}
+          {/* Top-right: price badge */}
           <div className="absolute top-3 right-3">
-            {matchScore ? (
-              <MatchScoreRing percentage={matchScore.matchPercentage} />
-            ) : (
-              <span className="bg-om-orange/70 text-white text-xs font-semibold px-2.5 py-1 rounded-full">
-                {formatPrice(venue.pricePerDay)}/day
-              </span>
-            )}
+            <span className="bg-om-orange/70 text-white text-xs font-semibold px-2.5 py-1 rounded-full">
+              {formatPrice(venue.pricePerDay)}/day
+            </span>
           </div>
 
-          {/* Bottom-right: price badge (matched) or rating (normal) */}
-          <div className="absolute bottom-3 right-3">
-            {matchScore ? (
-              <span className="bg-black/60 text-om-orange text-xs font-semibold px-2.5 py-1 rounded-lg">
-                {formatPrice(venue.pricePerDay)}/day
-              </span>
-            ) : (
-              <span className="flex items-center gap-1">
-                <Star className="h-3.5 w-3.5 fill-om-orange text-om-orange" />
-                <span className="text-sm font-medium text-white">{venue.rating}</span>
-              </span>
-            )}
+          {/* Bottom-right: rating */}
+          <div className="absolute bottom-3 right-3 flex items-center gap-1">
+            <Star className="h-3.5 w-3.5 fill-om-orange text-om-orange" />
+            <span className="text-sm font-medium text-white">{venue.rating}</span>
           </div>
-
-          {/* Bottom-left: rating (matched only) */}
-          {matchScore && (
-            <div className="absolute bottom-3 left-3 flex items-center gap-1">
-              <Star className="h-3.5 w-3.5 fill-om-orange text-om-orange" />
-              <span className="text-sm font-medium text-white">{venue.rating}</span>
-            </div>
-          )}
         </div>
 
         {/* Content */}
@@ -131,28 +111,33 @@ export default function VenueGridCard({ venue, matchScore }: VenueGridCardProps)
 
           {/* Match highlights or amenities */}
           {matchScore ? (
-            <div className="space-y-1.5">
-              {matchScore.topHighlights.map((highlight, i) => (
-                <div
-                  key={i}
-                  className="flex items-start gap-1.5 text-xs"
-                  style={{ color: "var(--text-secondary)" }}
-                >
-                  <CheckCircle2 className="h-3.5 w-3.5 text-green-400 shrink-0 mt-0.5" />
-                  <span className="line-clamp-1">{highlight}</span>
-                </div>
-              ))}
-              {matchScore.missingRequirements.length > 0 && (
-                <div
-                  className="flex items-start gap-1.5 text-xs"
-                  style={{ color: "var(--text-muted)" }}
-                >
-                  <AlertCircle className="h-3.5 w-3.5 text-yellow-400/70 shrink-0 mt-0.5" />
-                  <span className="line-clamp-1">
-                    Missing: {matchScore.missingRequirements.slice(0, 2).join(", ")}
-                  </span>
-                </div>
-              )}
+            <div className="flex items-start gap-3">
+              <div className="flex-1 space-y-1.5">
+                {matchScore.topHighlights.map((highlight, i) => (
+                  <div
+                    key={i}
+                    className="flex items-start gap-1.5 text-xs"
+                    style={{ color: "var(--text-secondary)" }}
+                  >
+                    <CheckCircle2 className="h-3.5 w-3.5 text-green-400 shrink-0 mt-0.5" />
+                    <span className="line-clamp-1">{highlight}</span>
+                  </div>
+                ))}
+                {matchScore.missingRequirements.length > 0 && (
+                  <div
+                    className="flex items-start gap-1.5 text-xs"
+                    style={{ color: "var(--text-muted)" }}
+                  >
+                    <AlertCircle className="h-3.5 w-3.5 text-yellow-400/70 shrink-0 mt-0.5" />
+                    <span className="line-clamp-1">
+                      Missing: {matchScore.missingRequirements.slice(0, 2).join(", ")}
+                    </span>
+                  </div>
+                )}
+              </div>
+              <div className="shrink-0">
+                <MatchScoreRing percentage={matchScore.matchPercentage} />
+              </div>
             </div>
           ) : (
             <div className="flex flex-wrap gap-1.5">

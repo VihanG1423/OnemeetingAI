@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Sparkles, X, Loader2 } from "lucide-react";
+import { Sparkles, X, Loader2, Shuffle } from "lucide-react";
 import { venueTypeLabel } from "@/lib/utils";
 import VenueGridCard from "./VenueGridCard";
 import VenueGridCardSkeleton from "./VenueGridCardSkeleton";
@@ -85,6 +85,31 @@ export default function MatchCriteriaPanel({
     onClear();
   };
 
+  const demoDescriptions = [
+    "Modern space with lots of natural light for a full-day strategy workshop with breakout sessions",
+    "Inspiring venue near the city center for a creative brainstorm with our design team",
+    "Professional setting for a board meeting with catering and AV equipment included",
+    "Relaxed atmosphere for a team offsite with outdoor space for networking breaks",
+    "Centrally located venue for a product launch event with room for presentations and demos",
+    "Quiet, focused environment for an executive retreat with high-end catering options",
+    "Flexible space for a hackathon weekend with good wifi and plenty of power outlets",
+    "Unique historic venue for a client dinner and evening networking event",
+  ];
+
+  const fillDemo = () => {
+    const pick = <T,>(arr: T[], min: number, max: number): T[] => {
+      const count = min + Math.floor(Math.random() * (max - min + 1));
+      const shuffled = [...arr].sort(() => Math.random() - 0.5);
+      return shuffled.slice(0, count);
+    };
+    setCapacity(String([20, 30, 50, 75, 100, 150, 200][Math.floor(Math.random() * 7)]));
+    setBudget(String([500, 1000, 1500, 2000, 3000, 5000][Math.floor(Math.random() * 6)]));
+    setSelectedCities(pick(cityOptions, 1, 2));
+    setSelectedVenueTypes(pick(venueTypeOptions, 1, 2));
+    setSelectedAmenities(pick(amenityOptions, 2, 4));
+    setDescription(demoDescriptions[Math.floor(Math.random() * demoDescriptions.length)]);
+  };
+
   const hasCriteria =
     capacity ||
     budget ||
@@ -100,7 +125,7 @@ export default function MatchCriteriaPanel({
         <div className="w-8 h-8 rounded-full bg-om-orange/15 flex items-center justify-center">
           <Sparkles className="h-4 w-4 text-om-orange" />
         </div>
-        <div>
+        <div className="flex-1">
           <h3 className="text-sm font-semibold text-white">
             AI Venue Matcher
           </h3>
@@ -108,6 +133,15 @@ export default function MatchCriteriaPanel({
             Tell us what you need and we&apos;ll score every venue for you
           </p>
         </div>
+        <button
+          onClick={fillDemo}
+          title="Fill with random demo data"
+          className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-full transition-colors hover:bg-white/10"
+          style={{ color: "var(--text-muted)" }}
+        >
+          <Shuffle className="h-3 w-3" />
+          Demo
+        </button>
       </div>
 
       {/* Criteria Form — always expanded */}
