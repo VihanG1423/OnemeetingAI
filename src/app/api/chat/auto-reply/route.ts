@@ -1,7 +1,33 @@
 import openai from "@/lib/openai";
+import prisma from "@/lib/prisma";
 
 export async function POST(request: Request) {
   const { aiMessage, demoScenario, conversationHistory } = await request.json();
+
+  // Fetch real venue data so the auto-reply can reference actual venues
+  let venueContext = "";
+  try {
+    const targetCity =
+      demoScenario === "perfectMatch" ? "Amsterdam" :
+      demoScenario === "expertCta" ? undefined : undefined;
+
+    const venues = await prisma.venue.findMany({
+      where: targetCity ? { city: targetCity } : undefined,
+      orderBy: { rating: "desc" },
+      take: 15,
+    });
+
+    if (venues.length > 0) {
+      const venueList = venues.map(v => {
+        const amenities = JSON.parse(v.amenities) as string[];
+        return `  - "${v.name}" in ${v.city}: ${v.capacity} guests, €${v.pricePerDay}/day, type: ${v.venueType}, amenities: ${amenities.join(", ")}`;
+      }).join("\n");
+
+      venueContext = `\nVENUES ACTUALLY AVAILABLE ON THE PLATFORM:\n${venueList}\n\nIMPORTANT: When the AI advisor shows you venue results or asks about preferences, reference criteria that align with these REAL venues. Never mention venue names directly (you wouldn't know them), but steer your requirements toward what these venues actually offer.\n`;
+    }
+  } catch {
+    // If DB query fails, continue without venue context
+  }
 
   const scenarioContext =
     demoScenario === "perfectMatch"
@@ -39,9 +65,12 @@ RULES:
 - DO NOT repeat information you've already provided in the conversation
 - Focus your answer on the specific NEW topic being asked about
 - Be decisive and give clear preferences when asked
+- When the AI presents venue options, respond positively and pick one to explore further — ask about availability or details
+- NEVER invent venue names — only reference venues the AI has mentioned to you
 
 YOUR SCENARIO:
 ${scenarioContext}
+${venueContext}
 ${conversationContext}`,
         },
         {

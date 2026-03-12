@@ -111,13 +111,30 @@ const demoScenarios = {
   },
 };
 
+// Detect if an assistant message is recommending an expert/specialist
+function containsExpertReferral(content: string): boolean {
+  const lower = content.toLowerCase();
+  return (
+    lower.includes("venue specialist") ||
+    lower.includes("venue experts") ||
+    lower.includes("our specialists") ||
+    lower.includes("our experts") ||
+    lower.includes("expert team") ||
+    lower.includes("reaching out to our") ||
+    lower.includes("+31 20 123 4567") ||
+    lower.includes("experts@onemeeting.nl") ||
+    lower.includes("live agent") ||
+    lower.includes("personalized approach") ||
+    (lower.includes("specialist") && lower.includes("access to exclusive"))
+  );
+}
+
 export default function ChatInterface({ compact = false }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<ChatMessageType[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [activeDemo, setActiveDemo] = useState<string | null>(null);
   const [showSamplePrompts, setShowSamplePrompts] = useState(false);
-  const [demoFinished, setDemoFinished] = useState<string | null>(null); // tracks which demo finished (e.g. "expertCta")
   const [pendingAttachments, setPendingAttachments] = useState<ChatAttachment[]>([]);
   const [showUploadMenu, setShowUploadMenu] = useState(false);
   const [activeDemoScenario, setActiveDemoScenario] = useState<string | null>(null);
@@ -476,7 +493,6 @@ export default function ChatInterface({ compact = false }: ChatInterfaceProps) {
     if (!scenario) return;
     setActiveDemoScenario(scenarioKey);
     setActiveDemo(scenarioKey);
-    setDemoFinished(null);
     sendMessage(scenario.initialMessage);
   };
 
@@ -595,14 +611,14 @@ export default function ChatInterface({ compact = false }: ChatInterfaceProps) {
                   ))}
                 </div>
               )}
+              {/* Show ExpertCTA when assistant message recommends an expert */}
+              {m.role === "assistant" && !m.isStreaming && m.content && containsExpertReferral(m.content) && (
+                <div className="ml-11 mt-3 animate-fade-in-up">
+                  <ExpertCTA compact />
+                </div>
+              )}
             </div>
           ))
-        )}
-        {/* Show ExpertCTA when expert referral demo completes */}
-        {demoFinished === "expertCta" && (
-          <div className="ml-11 animate-fade-in-up">
-            <ExpertCTA compact />
-          </div>
         )}
         <div ref={messagesEndRef} />
       </div>
