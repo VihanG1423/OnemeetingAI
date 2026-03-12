@@ -72,11 +72,14 @@ export default function VenueGridCard({ venue, matchScore }: VenueGridCardProps)
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
 
           {/* Badges on image */}
+          {/* Top-left: venue type badge (always shown) */}
           <div className="absolute top-3 left-3">
             <span className="bg-om-orange/70 text-white text-xs font-medium px-2.5 py-1 rounded-full">
               {venueTypeLabel(venue.venueType)}
             </span>
           </div>
+
+          {/* Top-right: match ring (matched) or price badge (normal) */}
           <div className="absolute top-3 right-3">
             {matchScore ? (
               <MatchScoreRing percentage={matchScore.matchPercentage} />
@@ -87,11 +90,27 @@ export default function VenueGridCard({ venue, matchScore }: VenueGridCardProps)
             )}
           </div>
 
-          {/* Rating on image bottom */}
-          <div className="absolute bottom-3 right-3 flex items-center gap-1">
-            <Star className="h-3.5 w-3.5 fill-om-orange text-om-orange" />
-            <span className="text-sm font-medium text-white">{venue.rating}</span>
+          {/* Bottom-right: price badge (matched) or rating (normal) */}
+          <div className="absolute bottom-3 right-3">
+            {matchScore ? (
+              <span className="bg-black/60 text-om-orange text-xs font-semibold px-2.5 py-1 rounded-lg">
+                {formatPrice(venue.pricePerDay)}/day
+              </span>
+            ) : (
+              <span className="flex items-center gap-1">
+                <Star className="h-3.5 w-3.5 fill-om-orange text-om-orange" />
+                <span className="text-sm font-medium text-white">{venue.rating}</span>
+              </span>
+            )}
           </div>
+
+          {/* Bottom-left: rating (matched only) */}
+          {matchScore && (
+            <div className="absolute bottom-3 left-3 flex items-center gap-1">
+              <Star className="h-3.5 w-3.5 fill-om-orange text-om-orange" />
+              <span className="text-sm font-medium text-white">{venue.rating}</span>
+            </div>
+          )}
         </div>
 
         {/* Content */}
@@ -108,11 +127,6 @@ export default function VenueGridCard({ venue, matchScore }: VenueGridCardProps)
               <Users className="h-3.5 w-3.5" />
               {venue.capacity}
             </span>
-            {matchScore && (
-              <span className="text-sm text-om-orange font-medium ml-auto">
-                {formatPrice(venue.pricePerDay)}/day
-              </span>
-            )}
           </div>
 
           {/* Match highlights or amenities */}
